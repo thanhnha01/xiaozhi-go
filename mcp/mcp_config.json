@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "local-stdio-calculator": {
+      "type": "stdio",
+      "command": ".venv/bin/python",
+      "args": ["-m", "calculator"],
+      "env": {
+        "FASTMCP_CHECK_FOR_UPDATES": "off"
+      }
+    },
+    "local-stdio-system-tools": {
+      "type": "stdio",
+      "command": ".venv/bin/python",
+      "args": ["-m", "system_tools"],
+      "env": {
+        "FASTMCP_CHECK_FOR_UPDATES": "off"
+      },
+      "disabled": true
+    },
+    "local-stdio-macos-control": {
+      "type": "stdio",
+      "command": ".venv/bin/python",
+      "args": ["-m", "macos_control"],
+      "env": {
+        "FASTMCP_CHECK_FOR_UPDATES": "off"
+      }
+    },
+    "remote-sse-server": {
+      "type": "sse",
+      "url": "https://api.example.com/sse",
+      "disabled": true
+    },
+    "remote-http-server": {
+      "type": "http",
+      "url": "https://api.example.com/mcp",
+      "disabled": true
+    }
+  }
+}

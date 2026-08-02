@@ -1,195 +1,121 @@
 # XiaoZhi-Go
 
-这是一个基于 `Go` 语言开发的小智([xiaozhi-esp32](https://github.com/78/xiaozhi-esp32))对话程序，通过 `WebSocket` 协议与服务器交互，支持语音输入输出、状态管理和 `IoT` 控制。该程序遵循 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32/blob/main/docs/websocket.md) 的通信协议，能够连接到 `wss://api.tenclass.net/xiaozhi/v1/` 服务器，实现语音识别 (`STT`)、文本转语音 (`TTS`) 和设备控制功能。
+小智对话助手 **PC 版**，用 Go 语言实现 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 的核心功能。通过 WebSocket 协议连接小智服务器（默认 `wss://api.tenclass.net/xiaozhi/v1/`），实现语音对话、设备绑定、IoT（MCP）控制。
 
-## 项目概述
-
-本程序实现人工智能对话的交互逻辑，主要功能包括：
-
-- **语音输入**: 从麦克风采集音频，编码为 `Opus` 格式并发送到服务器。
-- **语音输出**: 接收服务器的 `TTS` 音频，解码并通过扬声器播放。
-- **消息交互**: 处理 `JSON` 格式的控制消息，如 `hello`、`listen`、`iot` 等。
-- **状态管理**: 实现协议中的状态流转（`Idle` → `Connecting` → `Connected` → `Listening` → `Speaking`）。
-- **用户控制**: 通过终端命令控制程序行为。
-
-项目适用于语音助手、智能家居设备或其他需要实时语音交互的场景。
+协议遵循原版 [websocket.md](https://github.com/78/xiaozhi-esp32/blob/main/docs/websocket.md) 与 OTA 激活规范（`main/ota.cc`）。
 
 ## 功能特性
 
-1. **音频处理**:
+### 1. 设备绑定（OTA 激活）—— 核心功能
 
-   - 实时采集麦克风输入，编码为 `Opus` 格式。
-   - 接收并播放服务器返回的 `Opus` 音频。
+与原版 ESP32 完全一致的绑定流程：
 
-2. **消息支持**:
+- **首次启动生成真实随机 MAC 地址与 UUID v4**，持久化到 `device_config.json`（对应原版 NVS 存储），重启不更换身份。
+- 开机 POST 到 OTA 接口（`https://api.tenclass.net/xiaozhi/ota/`），请求头携带 `Device-Id`（MAC）、`Client-Id`（UUID）、`Activation-Version`，请求体为系统信息 JSON。
+- 服务器按 MAC 判断是否已绑定账号：
+  - **未绑定** → 返回 `activation` 对象（6 位验证码 + message + challenge）→ 终端醒目显示并**语音逐位播报验证码**（macOS 系统语音），随后**轮询 `POST {ota_url}/activate`**（202 等待 → 3 秒重试，其他失败 → 10 秒重试，最多 10 次），直到在小智控制台（xiaozhi.me）中输入验证码完成绑定。
+  - **已绑定** → 无 `activation` 段 → 直接进入正常对话流程。
+- 服务器响应中的 `websocket{url,token,version}` 配置自动持久化，用于后续连接。
 
-   - **客户端发送**: `hello`, `listen` (start/stop/detect), `abort`, `iot` (states/descriptors)。
-   - **服务器接收**: `hello`, `stt`, `tts` (start/stop/sentence_start), `iot` (commands), `llm`。
+### 2. 语音对话
 
-3. **用户交互**:
+- **语音输入**：麦克风 16kHz 采集，60ms/帧 Opus 编码实时发送。
+- **语音输出**：按服务器下发的采样率（24000Hz）解码播放（双速率音频流，自动降级处理）。
+- **自动监听**：AI 回复结束后自动进入监听，直接说话即可，无需按键。
 
-   - 提供终端命令菜单，支持开始/停止监听、发送唤醒词、中止会话等操作。
+### 3. 完整消息协议
 
-4. **状态管理**:
+| 方向            | 消息                                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 客户端 → 服务器 | `hello`（能力协商）、`listen`(start/stop/detect)、`abort`、`mcp`                                                                |
+| 服务器 → 客户端 | `hello`（session_id/audio_params）、`tts`(start/stop/sentence_start)、`stt`、`llm`、`mcp`、`system`(reboot)、`alert`、`goodbye` |
+| 音频            | v1 裸 Opus；v2/v3 按 BinaryProtocol2/3 包头（大端序）收发                                                                       |
 
-   - 严格遵循协议状态机，确保与服务器同步。
+### 4. 状态机
 
-5. **错误处理**:
+忠实移植原版 `device_state_machine.cc` 迁移规则：`unknown → starting → activating → idle ⇄ connecting ⇄ listening ⇄ speaking`，非法迁移被拒绝并记录日志。
 
-   - 处理连接断开、音频编解码错误等情况，自动恢复到空闲状态。
+### 5. 断线重连
+
+连接断开后指数退避自动重连（1s → 2s → 4s → ... → 30s 封顶），重连成功后自动恢复。
+
+### 6. 键盘交互
+
+| 按键                   | 功能                                         |
+| ---------------------- | -------------------------------------------- |
+| `空格`                 | 空闲时开始监听 / 监听时停止 / 播放时打断对话 |
+| `1` / `2`              | 开始 / 停止监听                              |
+| `3`                    | 发送唤醒词（你好小智）                       |
+| `4`                    | 中止对话                                     |
+| `5`                    | 发送 MCP 测试消息                            |
+| `+` / `-` 或 `↑` / `↓` | 音量调节                                     |
+| `6`                    | 退出                                         |
 
 ## 安装
 
 ### 前置条件
 
-- **操作系统**: 支持 `Linux`、`macOS` 或 `Windows`（需安装音频驱动）。
-- **硬件**: 麦克风和扬声器。
-- **Go 版本**: 1.16 或以上。
+- Go 1.24+，`pkg-config`
+- macOS：`brew install portaudio opus pkg-config`
+- Linux：`sudo apt-get install libopus-dev portaudio19-dev pkg-config`
 
-### 依赖安装
-
-1. 安装 Go（参考 [官方安装指南](https://golang.org/doc/install)）。
-2. 安装系统依赖：
-   - **Linux**: `sudo apt-get install libopus-dev portaudio19-dev`
-   - **macOS**: `brew install opus portaudio`
-   - **Windows**: 使用包管理器（如 MSYS2）安装 `libopus` 和 `portaudio`。
-3. 获取代码
+### 编译
 
 ```bash
-git clone https://github.com/wwwAngHua/xiaozhi-go.git
-cd xiaoxhi-go
+go mod tidy
+go build -o xiaozhi .
 ```
 
-3. 获取 Go 依赖：
+### 运行
 
 ```bash
-go get github.com/gorilla/websocket
-go get github.com/gordonklaus/portaudio
-go get github.com/hraban/opus
+./xiaozhi
 ```
 
-## 使用方法
-
-### 编译与运行
+可选参数：
 
 ```bash
-go run main.go
+./xiaozhi -config ./device_config.json   # 指定配置文件路径
+./xiaozhi -ota https://your-server/ota/  # 指定 OTA 服务器
+./xiaozhi -listen-timeout 10             # 监听超时秒数（0 为不自动停止）
 ```
 
-或编译为可执行文件：
+### 首次使用（设备绑定）
+
+1. 运行程序，首次启动自动生成随机 MAC 地址与 UUID（保存于 `device_config.json`）。
+2. 若设备未绑定，程序会显示并语音播报 **6 位激活码**。
+3. 打开「小智」控制台（xiaozhi.me），输入激活码完成绑定。
+4. 绑定成功后程序自动进入对话流程，此后该 MAC 对应的设备不再需要激活。
+
+> 删除 `device_config.json` 会生成新的设备身份（相当于重置设备）。
+
+## 项目结构
+
+```
+main.go        入口与流程编排（激活 → 连接 → 对话）
+config.go      配置持久化（替代原版 NVS：MAC/UUID/websocket 配置）
+device.go      设备身份：随机 MAC、UUID v4、系统信息 JSON
+ota.go         设备绑定：CheckVersion + 激活码播报 + Activate 轮询
+protocol.go    WebSocket 协议：hello/listen/abort/mcp + 二进制音频
+state.go       状态机（移植原版迁移规则）
+audio.go       音频管线：16kHz 采集编码 + 服务器采样率解码播放
+input.go       键盘交互
+main_test.go   单元测试
+```
+
+## 与原版的差异（有意为之）
+
+- **固件 OTA 升级**：PC 程序无需升级固件，不实现（仅解析 `firmware` 段并记录版本）。
+- **MQTT/UDP 协议**：仅实现 WebSocket 协议；OTA 响应中的 mqtt 配置仅保存不使用。
+- **唤醒词/VAD**：由键盘交互与监听超时替代硬件唤醒词检测。
+- **配网（WiFi/BluFi）**：PC 无配网需求，不实现。
+
+## 测试
 
 ```bash
-go build -o xiaozhi-go
-./xiaozhi-go
+go test ./...
 ```
-
-### 程序交互
-
-程序启动后，会自动连接到服务器并发送 `hello` 消息。终端显示命令菜单：
-
-```text
-命令: [1] 开始监听, [2] 停止监听, [3] 发送唤醒词, [4] 中止会话, [5] 发送IoT状态, [6] 退出
-```
-
-- 1: 开始监听，采集麦克风音频并发送到服务器。
-- 2: 停止监听，结束音频发送。
-- 3: 发送唤醒词（如“你好小智”），触发服务器响应。
-- 4: 中止当前会话，停止播放或监听。
-- 5: 发送示例 IoT 状态（如温度和灯光）。
-- 6: 退出程序，关闭连接。
-
-✨ <strong style="color: green;">[NEW] 除了以上交互方式外，目前新增了一个更方便的交互方式，程序启动连接成功后可以按一下空格开始说话，说话完毕再次按下空格可以得到回复，回复完毕后自动进入监听状态，只需要说话即可，再次按下即可结束，输入数字 6 可以退出程序</strong>
-
-### 示例运行日志
-
-```text
-2025/04/05 10:00:00 main.go:105: 状态: Connecting
-2025/04/05 10:00:01 main.go:122: 状态: Connected
-2025/04/05 10:00:01 main.go:123: WebSocket 连接成功
-2025/04/05 10:00:01 main.go:134: 发送: {Type:hello Version:1 Transport:websocket AudioParams:{Format:opus SampleRate:16000 Channels:1 FrameDuration:60}}
-
-命令: [1] 开始监听, [2] 停止监听, [3] 发送唤醒词, [4] 中止会话, [5] 发送IoT状态, [6] 退出
-1
-2025/04/05 10:00:05 main.go:254: 状态: Listening
-2025/04/05 10:00:05 main.go:256: 发送: {Type:listen SessionID:session_123 State:start Mode:manual}
-2025/04/05 10:00:06 main.go:xxx: 接收: {Type:stt Text:你好}
-2025/04/05 10:00:07 main.go:xxx: 接收: {Type:tts State:start}
-2025/04/05 10:00:07 main.go:xxx: 状态: Speaking
-2025/04/05 10:00:07 main.go:xxx: 收到音频数据，长度: 960 样本
-```
-
-## 配置说明
-
-### 默认配置
-
-- 服务器地址: `wss://api.tenclass.net/xiaozhi/v1/`
-- 认证令牌: `Bearer test-token`
-- 设备 ID: `b5:4a:56:ad:ef:f9`
-- 音频参数: 采样率 `16000 Hz`，单声道，帧时长 `60ms`。
-- 自定义配置
-- 在 `main.go` 中修改以下常量：
-
-```go
-const (
-    wsURL      = "wss://your-server-url" // 替换为您的服务器地址
-    authToken  = "Bearer your-token"     // 替换为有效令牌
-    deviceID   = "your-device-id"        // 替换为设备MAC地址
-    clientID   = "your-client-id"        // 替换为客户端ID
-    sessionID  = "your-session-id"       // 替换为会话ID
-)
-```
-
-一般情况下，只需要修改 `deviceID` 为您的 `ESP32 MAC` 地址即可。
-
-## 注意事项
-
-1. 服务器兼容性:
-   - 确保服务器支持协议中的消息格式和 `Opus` 音频编码。
-   - 若 `test-token` 无效，请联系服务器管理员获取有效令牌。
-2. 音频设备:
-   - 运行前检查麦克风和扬声器是否可用，否则程序会报错。
-   - 可通过 `portaudio` 的调试工具检查设备：
-
-```go
-go run -tags portaudio main.go
-```
-
-3. 性能优化:
-
-- 当前音频缓冲使用简单队列，高负载下可能出现延迟，可优化为环形缓冲区。
-
-4. 安全性:
-
-- 默认令牌硬编码在代码中，生产环境应使用环境变量或配置文件管理。
-
-## 贡献代码
-
-欢迎提交 Pull Request 或 Issue！以下是贡献步骤：
-
-1. Fork 本仓库。
-2. 创建分支：`git checkout -b feature/your-feature`。
-3. 提交更改：`git commit -m "添加新功能"`。
-4. 推送分支：`git push origin feature/your-feature`。
-5. 创建 `Pull Request`。
-
-## 开发建议
-
-- UI 改进: 添加图形界面（如使用 `fyne`）。
-- 功能扩展: 支持更多 `IoT` 命令或自定义消息类型。
-- 错误恢复: 实现断线重连机制。
 
 ## 许可证
 
-本项目采用 `MIT` 协议。详情见 `LICENSE` 文件。
-
-## 联系方式
-
-作者: wwwAngHua
-QQ: 422584084
-微信: kingstudy-vip
-邮箱: wwwanghua@outlook.com
-Issues: [GitHub Issues](https://github.com/wwwAngHua/xiaozhi-go/issues)
-
-## 特别感谢
-
-最后感谢虾哥 [Xiaoxia](https://github.com/78) 提供的 [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) 项目模型服务器的支持，大公无私！
+MIT

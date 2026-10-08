@@ -1,6 +1,6 @@
 # Giao diện XiaoZhi PC tiếng Việt
 
-Mở `xiaozhi-go.exe`. Chương trình tự mở trang điều khiển trên trình duyệt mặc định tại địa chỉ **127.0.0.1** (chỉ dùng trên PC, không cần hosting).
+Nhấp đúp `XiaoZhi-PC.exe` để mở **cửa sổ ứng dụng Windows bằng WebView2**, không cần CMD hay tab trình duyệt. Giao diện kết nối tới dịch vụ nền tại `127.0.0.1` chỉ trong máy tính.
 
 - **Bắt đầu nói**: Bật microphone, nói yêu cầu; **Dừng nói**: kết thúc lượt nói.
 - **Ngắt phản hồi**: Dừng câu trả lời đang phát.
@@ -9,11 +9,11 @@ Mở `xiaozhi-go.exe`. Chương trình tự mở trang điều khiển trên tr�
 - **Nhật ký kỹ thuật**: Thu gọn sẵn; chỉ mở khi cần chẩn đoán lỗi.
 - **Âm lượng**: Kéo thanh chỉnh trên giao diện.
 
-Nếu trình duyệt không tự mở, xem địa chỉ `http://127.0.0.1:<port>` in trong cửa sổ chương trình. Không được đóng chương trình đang chạy vì nó cung cấp giao diện và kết nối âm thanh.
+Nếu máy tính thiếu **Microsoft Edge WebView2 Runtime**, hãy cài runtime từ Microsoft. Ứng dụng có thể thử chuyển sang trình duyệt khi không khởi tạo được WebView2. Đóng cửa sổ sẽ kết thúc chương trình và ngắt kết nối với máy chủ.
 
-Mặc định dùng chế độ giao diện tiếng Việt. Để trở về chế độ phím bấm dòng lệnh cũ: `xiaozhi-go.exe -console`. Tham số `-ws` chỉ nhận WebSocket **thiết bị**; không phải WSS endpoint của MCP server.
+Mặc định dùng giao diện tiếng Việt. Bản Windows này được đóng gói ở chế độ `windowsgui` (không có CMD). Để dùng phím bấm dòng lệnh cũ, cần tự build một bản console với `go build -tags nolibopusfile -o xiaozhi-console.exe .` rồi chạy với `-console`. Tham số `-ws` chỉ nhận WebSocket **thiết bị**; không phải WSS endpoint của MCP server.
 
-Giao diện bản đầu tiên dùng trình duyệt cục bộ và vẫn có cửa sổ chương trình để hỗ trợ chẩn đoán; đây không phải GUI Windows native.
+Giao diện chạy trong **cửa sổ native Win32/WebView2**. Nội dung HTML/CSS được nhúng trong EXE và API điều khiển chỉ lắng nghe trên `127.0.0.1`.
 
 ---
 
@@ -23,14 +23,14 @@ Giao diện bản đầu tiên dùng trình duyệt cục bộ và vẫn có c�
 
 Vào repository **Actions** → **Build Windows XiaoZhi MCP Tester** → chọn run có dấu tích xanh → **Artifacts** → **xiaozhi-go-windows-x64**. Khi thay đổi đang nằm trên Pull Request, vào tab **Checks / Details** hoặc Actions của PR để tìm run. Workflow `workflow_dispatch` xuất hiện trên nhánh mặc định sau khi workflow được merge.
 
-Giải nén ZIP vào một thư mục riêng và giữ `xiaozhi-go.exe`, `libopus-0.dll`, `libportaudio.dll` (cùng những DLL khác) chung một thư mục. Không tải riêng file EXE.
+Giải nén ZIP vào một thư mục riêng và giữ `XiaoZhi-PC.exe`, `libopus-0.dll`, `libportaudio.dll` (cùng những DLL khác) chung một thư mục. Không tải riêng file EXE.
 
 ## 2. Chế độ mặc định — kích hoạt qua xiaozhi.me
 
 Mở PowerShell trong thư mục giải nén:
 
 ```powershell
-.\xiaozhi-go.exe -config .\device_config.json
+.\XiaoZhi-PC.exe -config .\device_config.json
 ```
 
 Ứng dụng tạo MAC và UUID cố định trong `device_config.json`; nếu chưa có thiết bị trên tài khoản, màn hình sẽ hiện mã kích hoạt 6 chữ số. Đăng nhập **https://xiaozhi.me**, thêm thiết bị bằng mã này. Sau khi máy chủ xác nhận, ứng dụng kết nối WebSocket của thiết bị.
@@ -53,7 +53,7 @@ Chỉ dùng nếu **đã có URL WebSocket cho thiết bị** và server cho ph�
 
 ```powershell
 $env:XIAOZHI_WS_TOKEN = "DEVICE_WS_TOKEN"
-.\xiaozhi-go.exe -ws "wss://your-device-websocket/path" -ws-version 1
+.\XiaoZhi-PC.exe -ws "wss://your-device-websocket/path" -ws-version 1
 ```
 
 `-ws` bỏ qua kích hoạt OTA trong lần chạy đó. Để trở về đăng ký qua Xiaozhi, chạy lại không có `-ws`. Không commit token vào GitHub. Nếu token được cấp từ OTA, nên để chế độ mặc định tự xử lý.

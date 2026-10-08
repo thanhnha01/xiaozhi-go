@@ -1,17 +1,40 @@
+# Giao diện XiaoZhi PC tiếng Việt
+
+Nhấp đúp `XiaoZhi-PC.exe` để mở **cửa sổ ứng dụng Windows bằng WebView2**, không cần CMD hay tab trình duyệt. Giao diện kết nối tới dịch vụ nền tại `127.0.0.1` chỉ trong máy tính.
+
+- **Bắt đầu nói**: Bật microphone, nói yêu cầu; **Dừng nói**: kết thúc lượt nói. Không có giới hạn 10 giây trong chế độ mặc định, nên bạn phải nhấn Dừng nói để gửi kết thúc lượt.
+- **Giám sát mic**: Biểu đồ mức âm và số khung Opus đã gửi thành công lên WebSocket sẽ tăng khi đang nói. Số khung gửi thành công không xác nhận máy chủ đã nhận dạng được lời nói; kiểm tra thêm STT/LLM và log Xiaozhi.
+- **Âm lượng**: từ 0 đến 100%, mặc định 70%. Đây là mức âm lượng phát trong ứng dụng, không tăng gain microphone hay thay đổi âm lượng hệ thống Windows.
+- **Ngắt phản hồi**: Dừng câu trả lời đang phát.
+- **Liên kết thiết bị**: Hiển thị mã kích hoạt 6 chữ số khi xiaozhi.me yêu cầu. Bấm liên kết xiaozhi.me trong giao diện, nhập mã để ghép thiết bị.
+- **Lịch sử hội thoại**: Hiển thị STT (lời bạn nói), LLM/phụ đề trợ lý và trạng thái hoạt động.
+- **Nhật ký kỹ thuật**: Thu gọn sẵn; chỉ mở khi cần chẩn đoán lỗi.
+- **Âm lượng**: Kéo thanh chỉnh trên giao diện.
+
+Nếu máy tính thiếu **Microsoft Edge WebView2 Runtime**, hãy cài runtime từ Microsoft. Ứng dụng có thể thử chuyển sang trình duyệt khi không khởi tạo được WebView2. Đóng cửa sổ **X** hoặc bấm **Thoát ứng dụng** ở thanh menu trái sẽ kết thúc chương trình và ngắt kết nối với máy chủ. Ứng dụng sẽ đóng WebSocket, dừng microphone/loa và máy chủ HTTP cục bộ; cache WebView2 được lưu ngoài thư mục chương trình, trong `%LOCALAPPDATA%\XiaoZhiPC\WebView2`. Vì vậy có thể giải nén phiên bản mới vào thư mục khác và xóa thư mục EXE/DLL cũ sau khi thoát.
+
+Nếu bản cũ vẫn đang giữ tệp: trong Task Manager → Details → tìm `XiaoZhi-PC.exe` → End task, rồi thử xóa lại. Không đóng hàng loạt `msedgewebview2.exe` vì ứng dụng khác có thể dùng chung.
+
+Mặc định dùng giao diện tiếng Việt. Bản Windows này được đóng gói ở chế độ `windowsgui` (không có CMD). Để dùng phím bấm dòng lệnh cũ, cần tự build một bản console với `go build -tags nolibopusfile -o xiaozhi-console.exe .` rồi chạy với `-console`. Tham số `-ws` chỉ nhận WebSocket **thiết bị**; không phải WSS endpoint của MCP server.
+
+Giao diện chạy trong **cửa sổ native Win32/WebView2**. Nội dung HTML/CSS được nhúng trong EXE và API điều khiển chỉ lắng nghe trên `127.0.0.1`.
+
+---
+
 # XiaoZhi-Go — kiểm thử trên Windows 10/11 (x64)
 
 ## 1. Tải chương trình từ GitHub Actions
 
 Vào repository **Actions** → **Build Windows XiaoZhi MCP Tester** → chọn run có dấu tích xanh → **Artifacts** → **xiaozhi-go-windows-x64**. Khi thay đổi đang nằm trên Pull Request, vào tab **Checks / Details** hoặc Actions của PR để tìm run. Workflow `workflow_dispatch` xuất hiện trên nhánh mặc định sau khi workflow được merge.
 
-Giải nén ZIP vào một thư mục riêng và giữ `xiaozhi-go.exe`, `libopus-0.dll`, `libportaudio.dll` (cùng những DLL khác) chung một thư mục. Không tải riêng file EXE.
+Giải nén ZIP vào một thư mục riêng và giữ `XiaoZhi-PC.exe`, `libopus-0.dll`, `libportaudio.dll` (cùng những DLL khác) chung một thư mục. Không tải riêng file EXE.
 
 ## 2. Chế độ mặc định — kích hoạt qua xiaozhi.me
 
 Mở PowerShell trong thư mục giải nén:
 
 ```powershell
-.\xiaozhi-go.exe -config .\device_config.json
+.\XiaoZhi-PC.exe -config .\device_config.json
 ```
 
 Ứng dụng tạo MAC và UUID cố định trong `device_config.json`; nếu chưa có thiết bị trên tài khoản, màn hình sẽ hiện mã kích hoạt 6 chữ số. Đăng nhập **https://xiaozhi.me**, thêm thiết bị bằng mã này. Sau khi máy chủ xác nhận, ứng dụng kết nối WebSocket của thiết bị.
@@ -34,7 +57,7 @@ Chỉ dùng nếu **đã có URL WebSocket cho thiết bị** và server cho ph�
 
 ```powershell
 $env:XIAOZHI_WS_TOKEN = "DEVICE_WS_TOKEN"
-.\xiaozhi-go.exe -ws "wss://your-device-websocket/path" -ws-version 1
+.\XiaoZhi-PC.exe -ws "wss://your-device-websocket/path" -ws-version 1
 ```
 
 `-ws` bỏ qua kích hoạt OTA trong lần chạy đó. Để trở về đăng ký qua Xiaozhi, chạy lại không có `-ws`. Không commit token vào GitHub. Nếu token được cấp từ OTA, nên để chế độ mặc định tự xử lý.

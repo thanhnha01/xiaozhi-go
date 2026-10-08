@@ -10,6 +10,8 @@ package main
 
 import (
 	"log"
+	"math"
+	"sync/atomic"
 	"sync"
 
 	"github.com/gordonklaus/portaudio"
@@ -27,8 +29,10 @@ type AudioManager struct {
 	mu     sync.Mutex
 	outBuf [][]int16
 
-	// 播放音量（0.0 ~ 2.0，默认 1.0）
+	// Hệ số âm lượng đầu ra (0-1, mặc định 70%).
 	volume float32
+	// Microphone level from the last captured PCM frame (0..100%).
+	micLevel atomic.Uint32
 
 	// 回调注入：编码帧发送函数 / 当前状态查询
 	sendFn  func([]byte)
@@ -49,7 +53,7 @@ func InitAudio() (*AudioManager, error) {
 		portaudio.Terminate()
 		return nil, err
 	}
-	return &AudioManager{enc: enc, volume: 1.0}, nil
+	return &AudioManager{enc: enc, volume: 0.7}, nil
 }
 
 func (a *AudioManager) Close() {
@@ -148,8 +152,11 @@ func (a *AudioManager) inputCallback(in, _ []int16) {
 		return
 	}
 	if a.stateFn() != StateListening {
+		a.micLevel.Store(0)
 		return
 	}
+	// Meter is based on the microphone PCM, not the server response.
+	a.micLevel.Store(pcmLevel(in))
 	data := make([]byte, 4096)
 	n, err := a.enc.Encode(in, data)
 	if err != nil {
@@ -166,8 +173,9 @@ func (a *AudioManager) outputCallback(_, out []int16) {
 		frame := a.outBuf[0]
 		copy(out, frame)
 		a.outBuf = a.outBuf[1:]
+		volume := a.volume
 		a.mu.Unlock()
-		applyVolume(out, a.volume)
+		applyVolume(out, volume)
 		return
 	}
 	a.mu.Unlock()
@@ -218,19 +226,33 @@ func (a *AudioManager) DecodeAudio(opusData []byte) []int16 {
 	return pcm[:n]
 }
 
-// SetVolume 设置播放音量（0.0 ~ 2.0）。
+// SetVolume applies software attenuation in the safe 0–100% range.
 func (a *AudioManager) SetVolume(v float32) {
-	if v < 0 {
-		v = 0
-	}
-	if v > 2 {
-		v = 2
-	}
+	if v < 0 { v = 0 }
+	if v > 1 { v = 1 }
+	a.mu.Lock()
 	a.volume = v
-	log.Printf("音量: %.0f%%", v*100)
+	a.mu.Unlock()
+	log.Printf("Âm lượng phát: %.0f%%", v*100)
 }
+func (a *AudioManager) Volume() float32 {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.volume
+}
+func (a *AudioManager) MicLevel() uint32 { return a.micLevel.Load() }
 
-func (a *AudioManager) Volume() float32 { return a.volume }
+// pcmLevel estimates microphone RMS and scales it perceptually for a UI meter.
+func pcmLevel(samples []int16) uint32 {
+	if len(samples) == 0 { return 0 }
+	var energy float64
+	for _, s := range samples { v:=float64(s)/32768; energy+=v*v }
+	rms:=math.Sqrt(energy/float64(len(samples)))
+	// sqrt() provides visibility for normal speech without any audio gain.
+	pct:=math.Sqrt(rms)*100
+	if pct>100 { pct=100 }
+	return uint32(math.Round(pct))
+}
 
 // applyVolume 应用音量增益。
 func applyVolume(samples []int16, volume float32) {

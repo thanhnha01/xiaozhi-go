@@ -166,6 +166,10 @@ var errActivationTimeout = fmt.Errorf("等待激活")
 //	  202 → 3s 后重试；其他失败 → 10s 后重试；最多 10 次
 //	绑定完成后重新 CheckVersion（服务器已绑定则不再返回 activation）
 func RunActivation(client *http.Client, cfg *DeviceConfig) error {
+	return RunActivationWithCallback(client,cfg,nil)
+}
+
+func RunActivationWithCallback(client *http.Client, cfg *DeviceConfig, onActivation func(string)) error {
 	const maxRetry = 10
 	retryDelay := 10 * time.Second
 
@@ -192,7 +196,7 @@ func RunActivation(client *http.Client, cfg *DeviceConfig) error {
 
 		// 未绑定：播报验证码并轮询等待用户绑定
 		if resp.Activation.Code != "" {
-			announceActivationCode(resp.Activation.Code, resp.Activation.Message)
+			if onActivation != nil { onActivation(resp.Activation.Code) } else { announceActivationCode(resp.Activation.Code, resp.Activation.Message) }
 		}
 
 		activated := false

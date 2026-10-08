@@ -117,7 +117,9 @@ func main() {
 		log.Printf("直连设备 WebSocket: %s (v%d)；跳过 OTA 激活", u.Host, directVersion)
 	} else {
 		log.Println("正在检查设备绑定状态...")
-		if err := RunActivation(app.http, cfg); err != nil {
+		var onActivation func(string)
+		if app.dashboard != nil { onActivation=app.dashboard.setActivation }
+		if err := RunActivationWithCallback(app.http, cfg, onActivation); err != nil {
 			if app.dashboard != nil { app.dashboard.setError("Không kích hoạt được thiết bị: "+err.Error()); app.waitForQuit(); return }; log.Fatalf("Kích hoạt thất bại: %v", err)
 		}
 		if err := cfg.saveConfig(); err != nil {

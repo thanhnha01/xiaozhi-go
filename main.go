@@ -9,11 +9,11 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"sync"
@@ -45,8 +45,14 @@ func main() {
 
 	var cfgPath string
 	var otaURL string
+	var directWS string
+	var directToken string
+	var directVersion int
 	flag.StringVar(&cfgPath, "config", "device_config.json", "设备配置文件路径")
 	flag.StringVar(&otaURL, "ota", "", "OTA 服务器地址（默认 https://api.tenclass.net/xiaozhi/ota/）")
+	flag.StringVar(&directWS, "ws", "", "设备 WebSocket URL（不是 MCP Server URL；设置后跳过 OTA 激活）")
+	flag.StringVar(&directToken, "ws-token", os.Getenv("XIAOZHI_WS_TOKEN"), "设备 WebSocket token（推荐通过环境变量 XIAOZHI_WS_TOKEN 设置）")
+	flag.IntVar(&directVersion, "ws-version", 1, "直连设备 WebSocket 协议版本（1, 2 或 3）")
 	flag.IntVar(&listenTimeout, "listen-timeout", 10, "自动停止监听的超时秒数（0 为不自动停止）")
 	flag.Parse()
 	configPath = cfgPath
@@ -84,12 +90,25 @@ func main() {
 
 	// ---------- 3. 设备绑定检查（对应原版 ActivationTask） ----------
 	app.sm.TransitionTo(StateActivating)
-	log.Println("正在检查设备绑定状态...")
-	if err := RunActivation(app.http, cfg); err != nil {
-		log.Fatalf("激活流程失败: %v", err)
-	}
-	if err := cfg.saveConfig(); err != nil {
-		log.Fatalf("保存配置失败: %v", err)
+	if directWS != "" {
+		u, err := url.Parse(directWS)
+		if err != nil || (u.Scheme != "ws" && u.Scheme != "wss") || u.Host == "" || u.User != nil {
+			log.Fatalf("设备 WebSocket URL 不合法（应为 ws:// 或 wss://，不要填 MCP endpoint）")
+		}
+		if directVersion < 1 || directVersion > 3 {
+			log.Fatal("ws-version 必须为 1、2 或 3")
+		}
+		// 直连只修改本次运行的连接参数；不覆盖已保存的 OTA 设备配置。
+		cfg.Websocket = &WebsocketConfig{URL: directWS, Token: directToken, Version: directVersion}
+		log.Printf("直连设备 WebSocket: %s (v%d)；跳过 OTA 激活", u.Host, directVersion)
+	} else {
+		log.Println("正在检查设备绑定状态...")
+		if err := RunActivation(app.http, cfg); err != nil {
+			log.Fatalf("激活流程失败: %v", err)
+		}
+		if err := cfg.saveConfig(); err != nil {
+			log.Fatalf("保存配置失败: %v", err)
+		}
 	}
 	app.sm.TransitionTo(StateIdle)
 
@@ -226,29 +245,6 @@ func (app *App) handleMessage(msg *Message) {
 	}
 }
 
-// handleMcp 处理 MCP JSON-RPC 消息（原版 McpServer::ParseMessage）。
-// PC 版无 IoT 硬件，记录并回显结果，避免服务器等待超时。
-func (app *App) handleMcp(payload []byte) {
-	if len(payload) == 0 {
-		log.Println("收到空的 MCP 消息")
-		return
-	}
-	log.Printf("MCP 消息: %s", string(payload))
-
-	// 解析 JSON-RPC 请求，回显其 id
-	var req struct {
-		ID json.RawMessage `json:"id"`
-	}
-	if err := json.Unmarshal(payload, &req); err != nil || len(req.ID) == 0 {
-		return
-	}
-	resp := fmt.Sprintf(`{"jsonrpc":"2.0","id":%s,"result":{"ok":true,"message":"xiaozhi-go: 工具不受支持"}}`,
-		req.ID)
-	if err := app.proto.SendMcpMessage(resp); err != nil {
-		log.Printf("发送 MCP 响应失败: %v", err)
-	}
-}
-
 // startListening 开始监听（对应原版 SendStartListening，manual 模式）。
 func (app *App) startListening() {
 	app.stateMu.Lock()
@@ -356,13 +352,9 @@ func (app *App) startKeyboardInput() {
 			app.sm.TransitionTo(StateIdle)
 			log.Println("已中止对话")
 		},
-		func() { // 发送 MCP 测试消息
-			payload := `{"jsonrpc":"2.0","method":"tools/call","params":{"name":"ping","arguments":{}},"id":1}`
-			if err := app.proto.SendMcpMessage(payload); err != nil {
-				log.Printf("发送 MCP 消息失败: %v", err)
-			} else {
-				log.Printf("已发送 MCP 消息: %s", payload)
-			}
+		func() { // 服务端 MCP 工具通过语音指令触发，不向设备 WS 发送伪造的 tools/call。
+			log.Printf("设备 WebSocket: %s; 已连接: %t", app.proto.wsURL(), app.proto.IsConnected())
+			log.Println("要测试 Cloudflare/Render MCP，请先在 xiaozhi.me 绑定服务器 MCP，再用麦克风提问触发工具；按 5 只显示诊断信息。")
 		},
 		func(delta float32) { app.audio.SetVolume(app.audio.Volume() + delta) },
 		func() { app.quitOnce.Do(func() { close(app.quitChan) }) },

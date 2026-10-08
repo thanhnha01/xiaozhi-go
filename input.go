@@ -20,7 +20,7 @@ func showCommandMenu() {
 	fmt.Println("  [空格]  按住说话 / 松开结束（PTT）")
 	fmt.Println("  [1] 开始监听    [2] 停止监听")
 	fmt.Println("  [3] 发送唤醒词  [4] 中止对话")
-	fmt.Println("  [5] 发送 MCP 测试消息")
+	fmt.Println("  [5] 设备 WebSocket / MCP 测试说明")
 	fmt.Println("  [+]/[-] 音量调节  [6] 退出")
 	fmt.Println("═══════════════════════════════════════════════")
 	fmt.Println()

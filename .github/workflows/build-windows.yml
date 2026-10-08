@@ -1,0 +1,68 @@
+name: Build Windows XiaoZhi MCP Tester
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64:
+    name: Windows x64 (microphone, speaker, Opus)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install Windows native audio libraries
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          path-type: inherit
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-opus
+            mingw-w64-ucrt-x86_64-portaudio
+      - name: Verify native dependencies and run tests
+        shell: msys2 {0}
+        env:
+          CGO_ENABLED: "1"
+          CC: gcc
+        run: |
+          go version
+          pkg-config --modversion opus portaudio-2.0
+          go test ./...
+      - name: Build and bundle Windows x64 app
+        shell: msys2 {0}
+        env:
+          CGO_ENABLED: "1"
+          CC: gcc
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          mkdir -p dist
+          go build -trimpath -ldflags="-s -w" -o dist/xiaozhi-go.exe .
+          cp /ucrt64/bin/libopus-0.dll /ucrt64/bin/libportaudio.dll dist/
+          # Include UCRT64 runtime libraries when present (portable ZIP).
+          for dll in libgcc_s_seh-1.dll libwinpthread-1.dll; do
+            if [ -f "/ucrt64/bin/$dll" ]; then cp "/ucrt64/bin/$dll" dist/; fi
+          done
+          cp docs/windows-testing-vi.md dist/HUONG_DAN.md
+          ls -lah dist/
+          ldd dist/xiaozhi-go.exe || true
+      - name: Upload portable Windows app
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaozhi-go-windows-x64
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30

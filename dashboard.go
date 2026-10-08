@@ -47,7 +47,7 @@ func (d *Dashboard) start() error {
  d.url="http://"+ln.Addr().String()
  d.server=&http.Server{Handler:d.handler(),ReadHeaderTimeout:5*time.Second}
  go func(){if err:=d.server.Serve(ln);err!=nil&&!errors.Is(err,http.ErrServerClosed){d.setError("Giao diện gặp lỗi: "+err.Error())}}()
- if err:=openLocalBrowser(d.url);err!=nil{d.event("system","Không thể tự mở trình duyệt: "+d.url)}
+ if err:=openDesktopWindow(d);err!=nil{d.event("system","Không mở được cửa sổ ứng dụng; chuyển sang trình duyệt: "+err.Error()); if fallbackErr:=openLocalBrowser(d.url);fallbackErr!=nil{d.event("system","Truy cập giao diện tại: "+d.url)}}
  return nil
 }
 func (d *Dashboard) close(){if d.server!=nil{_ = d.server.Close()}}

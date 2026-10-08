@@ -42,7 +42,8 @@ jobs:
           pkg-config --modversion opus portaudio-2.0
           # The desktop app uses Opus live encoder/decoder only; it does not need opusfile.
           # hraban/opus provides this official build tag to avoid the unused opusfile dependency.
-          go test -tags nolibopusfile ./...
+          go mod download
+          go test -mod=mod -tags nolibopusfile ./...
       - name: Build and bundle Windows x64 app
         shell: msys2 {0}
         env:
@@ -52,15 +53,16 @@ jobs:
           GOARCH: amd64
         run: |
           mkdir -p dist
-          go build -tags nolibopusfile -trimpath -ldflags="-s -w" -o dist/xiaozhi-go.exe .
+          go build -mod=mod -tags nolibopusfile -trimpath -ldflags="-s -w -H=windowsgui" -o dist/XiaoZhi-PC.exe .
           cp /ucrt64/bin/libopus-0.dll /ucrt64/bin/libportaudio.dll dist/
           # Include UCRT64 runtime libraries when present (portable ZIP).
           for dll in libgcc_s_seh-1.dll libwinpthread-1.dll; do
             if [ -f "/ucrt64/bin/$dll" ]; then cp "/ucrt64/bin/$dll" dist/; fi
           done
           cp docs/windows-testing-vi.md dist/HUONG_DAN.md
+          cp /ucrt64/bin/libstdc++-6.dll dist/ 2>/dev/null || true
           ls -lah dist/
-          ldd dist/xiaozhi-go.exe || true
+          ldd dist/XiaoZhi-PC.exe || true
       - name: Upload portable Windows app
         uses: actions/upload-artifact@v4
         with:

@@ -2,7 +2,9 @@
 
 Nhấp đúp `XiaoZhi-PC.exe` để mở **cửa sổ ứng dụng Windows bằng WebView2**, không cần CMD hay tab trình duyệt. Giao diện kết nối tới dịch vụ nền tại `127.0.0.1` chỉ trong máy tính.
 
-- **Bắt đầu nói**: Bật microphone, nói yêu cầu; **Dừng nói**: kết thúc lượt nói.
+- **Bắt đầu nói**: Bật microphone, nói yêu cầu; **Dừng nói**: kết thúc lượt nói. Không có giới hạn 10 giây trong chế độ mặc định, nên bạn phải nhấn Dừng nói để gửi kết thúc lượt.
+- **Giám sát mic**: Biểu đồ mức âm và số khung Opus đã gửi thành công lên WebSocket sẽ tăng khi đang nói. Số khung gửi thành công không xác nhận máy chủ đã nhận dạng được lời nói; kiểm tra thêm STT/LLM và log Xiaozhi.
+- **Âm lượng**: từ 0 đến 100%, mặc định 70%. Đây là mức âm lượng phát trong ứng dụng, không tăng gain microphone hay thay đổi âm lượng hệ thống Windows.
 - **Ngắt phản hồi**: Dừng câu trả lời đang phát.
 - **Liên kết thiết bị**: Hiển thị mã kích hoạt 6 chữ số khi xiaozhi.me yêu cầu. Bấm liên kết xiaozhi.me trong giao diện, nhập mã để ghép thiết bị.
 - **Lịch sử hội thoại**: Hiển thị STT (lời bạn nói), LLM/phụ đề trợ lý và trạng thái hoạt động.

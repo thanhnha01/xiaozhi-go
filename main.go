@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -40,6 +41,8 @@ type App struct {
 	quitChan chan struct{}
 	quitOnce sync.Once
 	dashboard *Dashboard
+	micFramesSent atomic.Uint64
+	micFramesDropped atomic.Uint64
 }
 
 func main() {
@@ -56,7 +59,7 @@ func main() {
 	flag.StringVar(&directWS, "ws", "", "设备 WebSocket URL（不是 MCP Server URL；设置后跳过 OTA 激活）")
 	flag.StringVar(&directToken, "ws-token", os.Getenv("XIAOZHI_WS_TOKEN"), "设备 WebSocket token（推荐通过环境变量 XIAOZHI_WS_TOKEN 设置）")
 	flag.IntVar(&directVersion, "ws-version", 1, "直连设备 WebSocket 协议版本（1, 2 或 3）")
-	flag.IntVar(&listenTimeout, "listen-timeout", 10, "自动停止监听的超时秒数（0 为不自动停止）")
+	flag.IntVar(&listenTimeout, "listen-timeout", 0, "自动停止监听的超时秒数（0 为不自动停止）")
 	flag.BoolVar(&consoleOnly, "console", false, "Chạy giao diện dòng lệnh cũ")
 	flag.Parse()
 	configPath = cfgPath
@@ -136,12 +139,32 @@ func main() {
 
 	// ---------- 4. 建立 WebSocket 会话 ----------
 	app.proto = NewProtocolClient(cfg)
+	// Never block the real-time PortAudio callback on a WebSocket network write.
+	frames := make(chan []byte, 16)
 	audio.SetSendCallback(func(frame []byte) {
-		// 发送音频帧（毫秒时间戳，对应原版 AudioStreamPacket.timestamp）
-		if err := app.proto.SendAudioFrame(frame, uint32(time.Now().UnixNano()/1e6)); err != nil {
-			log.Printf("发送音频失败: %v", err)
+		select {
+		case frames <- frame:
+		default:
+			app.micFramesDropped.Add(1)
 		}
 	})
+	go func() {
+		for {
+			select {
+			case <-app.quitChan:
+				return
+			case frame := <-frames:
+				// Discard queued frames once the listen session has ended.
+				if app.sm.Current() != StateListening { continue }
+				if err := app.proto.SendAudioFrame(frame, uint32(time.Now().UnixMilli())); err != nil {
+					app.micFramesDropped.Add(1)
+					log.Printf("Lỗi gửi âm thanh microphone: %v", err)
+				} else {
+					app.micFramesSent.Add(1)
+				}
+			}
+		}
+	}()
 	// 接线服务器消息与音频回调
 	app.proto.onMessage = app.handleMessage
 	app.proto.onAudio = func(payload []byte, _ uint32) {
@@ -247,8 +270,9 @@ func (app *App) handleMessage(msg *Message) {
 		case "stop":
 			app.sm.TransitionTo(StateIdle)
 			log.Println("TTS 播放结束")
-			// 回复结束后自动进入监听（对应原版 auto 模式）
-			app.startListening()
+			// GUI uses explicit push-to-talk. Do not reopen microphone after
+			// TTS stops unless the user presses "Bắt đầu nói" again.
+			if app.dashboard == nil { app.startListening() }
 		case "sentence_start":
 			log.Printf("字幕: %s", msg.Text)
 			if app.dashboard != nil {app.dashboard.event("tts",msg.Text)}
@@ -297,6 +321,8 @@ func (app *App) startListeningLocked() {
 	}
 	app.sm.TransitionTo(StateListening)
 	app.isRecording = true
+	app.micFramesSent.Store(0)
+	app.micFramesDropped.Store(0)
 	app.resetListeningTimer()
 	log.Println("Đang nghe qua microphone")
 }
@@ -322,6 +348,7 @@ func (app *App) stopListeningLocked() {
 		}
 	}
 	app.isRecording = false
+	if app.audio != nil { app.audio.micLevel.Store(0) }
 	app.sm.TransitionTo(StateIdle)
 	log.Println("Đã dừng microphone")
 }

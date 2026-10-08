@@ -105,12 +105,18 @@ func (d *Dashboard) handler() http.Handler{
   logs:=append([]string{},d.logs...)
   d.mu.RUnlock()
   state:=d.app.sm.Current().String()
-  volume:=float32(1)
-  if d.app.audio!=nil{volume=d.app.audio.Volume()}
+  volume:=float32(0.7)
+  micLevel:=uint32(0)
+  if d.app.audio!=nil {
+   volume=d.app.audio.Volume()
+   if state=="listening" {micLevel=d.app.audio.MicLevel()}
+  }
   w.Header().Set("Content-Type","application/json; charset=utf-8")
   _=json.NewEncoder(w).Encode(map[string]any{
    "phase":phase,"state":state,"recording":state=="listening","activation":activation,
    "error":failure,"mac":d.app.cfg.MacAddress,"volume":volume,"events":events,"logs":logs,
+   "mic_level":micLevel,"mic_frames_sent":d.app.micFramesSent.Load(),
+   "mic_frames_dropped":d.app.micFramesDropped.Load(),
   })
  })
  mux.HandleFunc("/api/action",func(w http.ResponseWriter,r *http.Request){
@@ -140,7 +146,7 @@ func (d *Dashboard) performAction(action string,value float32)error{
  if action=="quit"{d.app.quitOnce.Do(func(){close(d.app.quitChan)});return nil}
  if action=="volume"{
   if d.app.audio==nil{return fmt.Errorf("âm thanh chưa sẵn sàng")}
-  if value<0||value>2{return fmt.Errorf("âm lượng phải từ 0 đến 200%%")}
+  if value<0||value>1{return fmt.Errorf("âm lượng phải từ 0 đến 100%%")}
   d.app.audio.SetVolume(value);return nil
  }
  d.mu.RLock();ready:=d.phase=="ready";d.mu.RUnlock()

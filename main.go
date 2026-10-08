@@ -11,6 +11,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -38,6 +39,7 @@ type App struct {
 
 	quitChan chan struct{}
 	quitOnce sync.Once
+	dashboard *Dashboard
 }
 
 func main() {
@@ -48,12 +50,14 @@ func main() {
 	var directWS string
 	var directToken string
 	var directVersion int
+	var consoleOnly bool
 	flag.StringVar(&cfgPath, "config", "device_config.json", "设备配置文件路径")
 	flag.StringVar(&otaURL, "ota", "", "OTA 服务器地址（默认 https://api.tenclass.net/xiaozhi/ota/）")
 	flag.StringVar(&directWS, "ws", "", "设备 WebSocket URL（不是 MCP Server URL；设置后跳过 OTA 激活）")
 	flag.StringVar(&directToken, "ws-token", os.Getenv("XIAOZHI_WS_TOKEN"), "设备 WebSocket token（推荐通过环境变量 XIAOZHI_WS_TOKEN 设置）")
 	flag.IntVar(&directVersion, "ws-version", 1, "直连设备 WebSocket 协议版本（1, 2 或 3）")
 	flag.IntVar(&listenTimeout, "listen-timeout", 10, "自动停止监听的超时秒数（0 为不自动停止）")
+	flag.BoolVar(&consoleOnly, "console", false, "Chạy giao diện dòng lệnh cũ")
 	flag.Parse()
 	configPath = cfgPath
 
@@ -78,11 +82,21 @@ func main() {
 		quitChan: make(chan struct{}),
 	}
 	app.sm.TransitionTo(StateStarting)
+	if !consoleOnly {
+		dashboard, err := newDashboard(app)
+		if err != nil { log.Fatalf("Không tạo được giao diện: %v", err) }
+		app.dashboard = dashboard
+		log.SetOutput(io.MultiWriter(os.Stderr, dashboard))
+		if err := dashboard.start(); err != nil { log.Fatalf("Không thể mở giao diện: %v", err) }
+		defer dashboard.close()
+		fmt.Println("Giao diện XiaoZhi tiếng Việt:", dashboard.url)
+	}
 
 	// ---------- 2. 初始化音频 ----------
 	audio, err := InitAudio()
 	if err != nil {
-		log.Fatalf("初始化音频失败: %v", err)
+		if app.dashboard != nil { app.dashboard.setError("Không khởi tạo được âm thanh: "+err.Error()); app.waitForQuit(); return }
+		log.Fatalf("Không khởi tạo được âm thanh: %v",err)
 	}
 	app.audio = audio
 	defer audio.Close()
@@ -104,7 +118,7 @@ func main() {
 	} else {
 		log.Println("正在检查设备绑定状态...")
 		if err := RunActivation(app.http, cfg); err != nil {
-			log.Fatalf("激活流程失败: %v", err)
+			if app.dashboard != nil { app.dashboard.setError("Không kích hoạt được thiết bị: "+err.Error()); app.waitForQuit(); return }; log.Fatalf("Kích hoạt thất bại: %v", err)
 		}
 		if err := cfg.saveConfig(); err != nil {
 			log.Fatalf("保存配置失败: %v", err)
@@ -114,7 +128,8 @@ func main() {
 
 	// 启动麦克风采集流
 	if err := audio.StartInput(); err != nil {
-		log.Fatalf("初始化音频输入失败: %v", err)
+		if app.dashboard != nil { app.dashboard.setError("Không mở được microphone: "+err.Error()); app.waitForQuit(); return }
+		log.Fatalf("Không mở được microphone: %v",err)
 	}
 
 	// ---------- 4. 建立 WebSocket 会话 ----------
@@ -133,14 +148,17 @@ func main() {
 		}
 	}
 	if err := app.connect(); err != nil {
-		log.Fatalf("连接服务器失败: %v", err)
+		if app.dashboard != nil { app.dashboard.setError("Kết nối máy chủ thất bại: "+err.Error()); app.waitForQuit(); return }
+		log.Fatalf("Kết nối máy chủ thất bại: %v",err)
 	}
+	if app.dashboard != nil { app.dashboard.setPhase("ready");app.dashboard.event("system","Đã kết nối với máy chủ Xiaozhi. Bạn có thể bắt đầu nói.") }
 
-	showCommandMenu()
+
+	if consoleOnly { showCommandMenu() }
 
 	// ---------- 5. 启动各协程 ----------
 	go app.receiveLoop()
-	go app.startKeyboardInput()
+	if consoleOnly {go app.startKeyboardInput()}
 
 	// ---------- 6. 等待退出 ----------
 	interrupt := make(chan os.Signal, 1)
@@ -153,10 +171,16 @@ func main() {
 	}
 	app.proto.Close()
 }
+func (app *App) waitForQuit(){
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	select {case <-app.quitChan: case <-interrupt:}
+}
 
 // connect 建立 WebSocket 连接并完成 hello 握手（对应原版 OpenAudioChannel）。
 func (app *App) connect() error {
 	app.sm.TransitionTo(StateConnecting)
+	if app.dashboard != nil {app.dashboard.setPhase("connecting")}
 	hello, err := app.proto.Connect()
 	if err != nil {
 		app.sm.TransitionTo(StateIdle)
@@ -172,6 +196,7 @@ func (app *App) connect() error {
 		return fmt.Errorf("初始化音频输出失败: %w", err)
 	}
 	app.sm.TransitionTo(StateIdle)
+	if app.dashboard != nil {app.dashboard.setPhase("ready")}
 	log.Println("连接就绪，可以开始对话")
 	return nil
 }
@@ -183,6 +208,7 @@ func (app *App) receiveLoop() {
 		err := app.proto.ReadLoop()
 		if err != nil {
 			log.Printf("连接断开: %v", err)
+			if app.dashboard != nil {app.dashboard.setPhase("connecting");app.dashboard.event("system","Mất kết nối, đang thử kết nối lại...")}
 		}
 		// 网络断开时关闭当前音频通道（对应原版 HandleNetworkDisconnectedEvent）
 		app.stateMu.Lock()
@@ -223,11 +249,14 @@ func (app *App) handleMessage(msg *Message) {
 			app.startListening()
 		case "sentence_start":
 			log.Printf("字幕: %s", msg.Text)
+			if app.dashboard != nil {app.dashboard.event("tts",msg.Text)}
 		}
 	case "stt":
 		log.Printf("识别结果: %s", msg.Text)
+		if app.dashboard != nil {app.dashboard.event("stt",msg.Text)}
 	case "llm":
 		log.Printf("LLM: 情感=%s 文本=%s", msg.Emotion, msg.Text)
+		if app.dashboard != nil {app.dashboard.event("llm",msg.Text)}
 	case "mcp":
 		app.handleMcp(msg.Payload)
 	case "system":
@@ -267,7 +296,7 @@ func (app *App) startListeningLocked() {
 	app.sm.TransitionTo(StateListening)
 	app.isRecording = true
 	app.resetListeningTimer()
-	log.Println("开始监听（按空格停止）")
+	log.Println("Đang nghe qua microphone")
 }
 
 // stopListening 停止监听。
@@ -292,7 +321,7 @@ func (app *App) stopListeningLocked() {
 	}
 	app.isRecording = false
 	app.sm.TransitionTo(StateIdle)
-	log.Println("停止监听")
+	log.Println("Đã dừng microphone")
 }
 
 // resetListeningTimer 设置监听超时自动停止（替代原版 VAD 静音检测）。

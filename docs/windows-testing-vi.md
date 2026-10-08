@@ -1,3 +1,22 @@
+# Giao diện XiaoZhi PC tiếng Việt
+
+Mở `xiaozhi-go.exe`. Chương trình tự mở trang điều khiển trên trình duyệt mặc định tại địa chỉ **127.0.0.1** (chỉ dùng trên PC, không cần hosting).
+
+- **Bắt đầu nói**: Bật microphone, nói yêu cầu; **Dừng nói**: kết thúc lượt nói.
+- **Ngắt phản hồi**: Dừng câu trả lời đang phát.
+- **Liên kết thiết bị**: Hiển thị mã kích hoạt 6 chữ số khi xiaozhi.me yêu cầu. Bấm liên kết xiaozhi.me trong giao diện, nhập mã để ghép thiết bị.
+- **Lịch sử hội thoại**: Hiển thị STT (lời bạn nói), LLM/phụ đề trợ lý và trạng thái hoạt động.
+- **Nhật ký kỹ thuật**: Thu gọn sẵn; chỉ mở khi cần chẩn đoán lỗi.
+- **Âm lượng**: Kéo thanh chỉnh trên giao diện.
+
+Nếu trình duyệt không tự mở, xem địa chỉ `http://127.0.0.1:<port>` in trong cửa sổ chương trình. Không được đóng chương trình đang chạy vì nó cung cấp giao diện và kết nối âm thanh.
+
+Mặc định dùng chế độ giao diện tiếng Việt. Để trở về chế độ phím bấm dòng lệnh cũ: `xiaozhi-go.exe -console`. Tham số `-ws` chỉ nhận WebSocket **thiết bị**; không phải WSS endpoint của MCP server.
+
+Giao diện bản đầu tiên dùng trình duyệt cục bộ và vẫn có cửa sổ chương trình để hỗ trợ chẩn đoán; đây không phải GUI Windows native.
+
+---
+
 # XiaoZhi-Go — kiểm thử trên Windows 10/11 (x64)
 
 ## 1. Tải chương trình từ GitHub Actions

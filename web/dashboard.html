@@ -51,7 +51,7 @@ h1{font-size:32px;letter-spacing:-.8px;margin:0;font-weight:750}h1 small{display
 <button class="tab" data-tab="chat"><span class="glyph">▤</span>Hội thoại</button>
 <button class="tab" data-tab="log"><span class="glyph">☷</span>Nhật ký</button>
 <button class="tab" data-tab="settings"><span class="glyph">⚙</span>Cài đặt</button>
-<div class="bottom"><span class="green">●</span> XiaoZhi PC<br>Giao diện tiếng Việt</div></aside>
+<div class="bottom"><button class="tab" style="padding:11px 8px;color:#e4b7c0" onclick="exitApp()"><span class="glyph">⏻</span>Thoát ứng dụng</button><span class="green">●</span> XiaoZhi PC<br>Giao diện tiếng Việt</div></aside>
 <main><div class="top"><h1>XiaoZhi PC<small>Trợ lý giọng nói • Giao diện tiếng Việt</small></h1><div class="hint">✦ Kiểm thử thiết bị và công cụ MCP</div></div>
 <div class="grid">
 <section class="card connection" data-section="device"><h2><span class="dot"></span> Trạng thái kết nối</h2>
@@ -69,6 +69,7 @@ const token="{{LOCAL_TOKEN}}", $=id=>document.getElementById(id);
 const stateNames={starting:"Đang khởi động",activating:"Chờ kích hoạt",connecting:"Đang kết nối",ready:"Đã kết nối",error:"Có lỗi",idle:"Sẵn sàng",listening:"Đang nghe",speaking:"Đang trả lời"};
 const bars=$("bars");for(let i=0;i<44;i++){let b=document.createElement("i");b.style.setProperty("--h",(6+Math.round(42*Math.abs(Math.sin(i*.91)*Math.cos(i*.37))))+"px");bars.append(b)}
 function openExternal(url){window.open(url,"_blank","noopener,noreferrer")}
+async function exitApp(){if(window.confirm("Thoát XiaoZhi PC và ngắt kết nối thiết bị?"))await send("quit")}
 async function send(action,value){try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action,value})});const data=await r.json();$("notice").textContent=r.ok?"":(data.error||"Không thực hiện được")}catch(e){$("notice").textContent="Lỗi: "+e.message}}
 let previous="";
 async function refresh(){try{const r=await fetch("/api/status");if(!r.ok)throw Error("HTTP "+r.status);let s=await r.json();$("connection").textContent=stateNames[s.phase]||s.phase;$("audioStatus").textContent=s.state==="listening"?"Đang thu âm":s.state==="speaking"?"Đang phát âm":"Sẵn sàng";

@@ -192,9 +192,19 @@ func main() {
 	case <-app.quitChan:
 		log.Println("程序退出")
 	case <-interrupt:
-		log.Println("收到中断信号，退出...")
+		log.Println("Đã nhận tín hiệu thoát, đang đóng cửa sổ và kết nối...")
+		if app.dashboard!=nil {
+			app.dashboard.requestQuit()
+			<-app.quitChan
+		}
 	}
+	// Gracefully release microphone, speaker, device WebSocket, and GUI HTTP
+	// server before the process exits; no application process is left behind.
+	app.stateMu.Lock()
+	if app.isRecording { app.stopListeningLocked() }
+	app.stateMu.Unlock()
 	app.proto.Close()
+	if app.dashboard!=nil { app.dashboard.close() }
 }
 func (app *App) waitForQuit(){
 	interrupt := make(chan os.Signal, 1)

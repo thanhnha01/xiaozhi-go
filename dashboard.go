@@ -32,6 +32,7 @@ type Dashboard struct {
  listener net.Listener
  server *http.Server
  url, nonce, phase, errorMessage, activation string
+ windowClose func()
  events []dashboardEvent
  logs []string
 }
@@ -51,6 +52,20 @@ func (d *Dashboard) start() error {
  return nil
 }
 func (d *Dashboard) close(){if d.server!=nil{_ = d.server.Close()}}
+func (d *Dashboard) setWindowClose(fn func()) {
+ d.mu.Lock()
+ d.windowClose=fn
+ d.mu.Unlock()
+}
+// requestQuit closes the native window first, then the window message loop
+// signals quitChan. Browser fallback has no native window and quits directly.
+func (d *Dashboard) requestQuit() {
+ d.mu.RLock()
+ fn:=d.windowClose
+ d.mu.RUnlock()
+ if fn!=nil {fn();return}
+ d.app.quitOnce.Do(func(){close(d.app.quitChan)})
+}
 func openLocalBrowser(address string) error {
  var cmd *exec.Cmd
  switch runtime.GOOS {
@@ -143,7 +158,7 @@ func (d *Dashboard) handler() http.Handler{
  })
 }
 func (d *Dashboard) performAction(action string,value float32)error{
- if action=="quit"{d.app.quitOnce.Do(func(){close(d.app.quitChan)});return nil}
+ if action=="quit"{d.requestQuit();return nil}
  if action=="volume"{
   if d.app.audio==nil{return fmt.Errorf("âm thanh chưa sẵn sàng")}
   if value<0||value>1{return fmt.Errorf("âm lượng phải từ 0 đến 100%%")}

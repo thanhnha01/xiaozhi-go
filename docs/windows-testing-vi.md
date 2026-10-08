@@ -11,7 +11,9 @@ Nhấp đúp `XiaoZhi-PC.exe` để mở **cửa sổ ứng dụng Windows bằn
 - **Nhật ký kỹ thuật**: Thu gọn sẵn; chỉ mở khi cần chẩn đoán lỗi.
 - **Âm lượng**: Kéo thanh chỉnh trên giao diện.
 
-Nếu máy tính thiếu **Microsoft Edge WebView2 Runtime**, hãy cài runtime từ Microsoft. Ứng dụng có thể thử chuyển sang trình duyệt khi không khởi tạo được WebView2. Đóng cửa sổ sẽ kết thúc chương trình và ngắt kết nối với máy chủ.
+Nếu máy tính thiếu **Microsoft Edge WebView2 Runtime**, hãy cài runtime từ Microsoft. Ứng dụng có thể thử chuyển sang trình duyệt khi không khởi tạo được WebView2. Đóng cửa sổ **X** hoặc bấm **Thoát ứng dụng** ở thanh menu trái sẽ kết thúc chương trình và ngắt kết nối với máy chủ. Ứng dụng sẽ đóng WebSocket, dừng microphone/loa và máy chủ HTTP cục bộ; cache WebView2 được lưu ngoài thư mục chương trình, trong `%LOCALAPPDATA%\XiaoZhiPC\WebView2`. Vì vậy có thể giải nén phiên bản mới vào thư mục khác và xóa thư mục EXE/DLL cũ sau khi thoát.
+
+Nếu bản cũ vẫn đang giữ tệp: trong Task Manager → Details → tìm `XiaoZhi-PC.exe` → End task, rồi thử xóa lại. Không đóng hàng loạt `msedgewebview2.exe` vì ứng dụng khác có thể dùng chung.
 
 Mặc định dùng giao diện tiếng Việt. Bản Windows này được đóng gói ở chế độ `windowsgui` (không có CMD). Để dùng phím bấm dòng lệnh cũ, cần tự build một bản console với `go build -tags nolibopusfile -o xiaozhi-console.exe .` rồi chạy với `-console`. Tham số `-ws` chỉ nhận WebSocket **thiết bị**; không phải WSS endpoint của MCP server.
 

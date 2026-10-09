@@ -32,7 +32,7 @@ type Dashboard struct {
  listener net.Listener
  server *http.Server
  url, nonce, phase, errorMessage, activation string
- emotion, mascotDir string
+ emotion string
  windowClose func()
  events []dashboardEvent
  logs []string
@@ -40,7 +40,7 @@ type Dashboard struct {
 func newDashboard(app *App) (*Dashboard,error) {
  secret:=make([]byte,24)
  if _,err:=rand.Read(secret);err!=nil{return nil,err}
- return &Dashboard{app:app,nonce:hex.EncodeToString(secret),phase:"starting",emotion:"neutral",mascotDir:mascotAssetDir(),events:[]dashboardEvent{},logs:[]string{}},nil
+ return &Dashboard{app:app,nonce:hex.EncodeToString(secret),phase:"starting",emotion:"neutral",events:[]dashboardEvent{},logs:[]string{}},nil
 }
 func (d *Dashboard) start() error {
  ln,err:=net.Listen("tcp","127.0.0.1:0")

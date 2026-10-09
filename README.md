@@ -152,3 +152,17 @@ Có thể đặt một thư mục riêng qua biến môi trường `XIAOZHI_MASC
 Khi đang nghe, nhân vật ưu tiên trạng thái `listening`. Khi AI trả lời, biểu cảm `llm.emotion` sẽ thay thế GIF nói mặc định nếu có; sau kết thúc TTS sẽ về trạng thái chờ. Nút xem thử chỉ thay đổi giao diện trong 5 giây, không gửi lệnh tới AI. Hiệu ứng hoạt ảnh của các file phụ thuộc số khung hình có sẵn; mã không tự tạo thêm khung hình.
 
 **Lưu ý quyền sử dụng:** các GIF do người dùng cung cấp, không bao gồm trong mã nguồn repository hoặc gói Release EXE. Hãy bảo đảm bạn có quyền sử dụng và phân phối chúng.
+
+## Giao diện người dùng thế hệ mới
+
+Bản UI hướng tới người dùng cuối gồm bốn mục: **Trang chủ**, **Trò chuyện**, **Âm nhạc**, **Cài đặt**. Không hiển thị MAC, phiên WebSocket, nhật ký kỹ thuật hay MCP ở giao diện thông thường. Giao diện đổi Qoobee khi nghe, nói và nhận `llm.emotion`.
+
+### Màn hình ghép nối lần đầu
+
+Mã xác thực hiển thị dạng modal **chỉ khi OTA trả về activation.code**. Khi OTA nhận xác thực thành công và kết nối chuyển sang `ready`, ứng dụng tự xóa mã và ẩn modal. Cấu hình danh tính thiết bị tiếp tục nằm trong `device_config.json`.
+
+### Mapping mascot UI mới
+
+`idle` → `qoobee.gif` (animation), `speaking` / `happy` → `bom-dia.gif` (GIF tĩnh 1 frame), `listening` → `qoo-bee-qoo-bee-agapi.gif`.
+
+> Chưa có đủ quyền phân phối công khai bộ GIF gốc. Nếu phát hành repo công khai, cần xác minh giấy phép ảnh. Khi chưa commit được GIF nhị phân, ứng dụng đang đọc chúng từ thư mục `mascot/` bên cạnh EXE theo cơ chế hiện tại.

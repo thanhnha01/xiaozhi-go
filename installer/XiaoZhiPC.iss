@@ -37,7 +37,7 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "..\dist\XiaoZhi-PC.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\*.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 
 [Tasks]
 Name: "desktopicon"; Description: "Tạo biểu tượng ngoài màn hình (Desktop)"; GroupDescription: "Biểu tượng:"; Flags: checkedonce

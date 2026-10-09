@@ -16,9 +16,9 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\XiaoZhi-PC.exe
-OutputDir=output
+OutputDir=..\output
 OutputBaseFilename=XiaoZhi-PC-Setup-v{#MyAppVersion}
-SetupIconFile=installer\xiaozhi.ico
+SetupIconFile=xiaozhi.ico
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -37,7 +37,7 @@ Name: "vi"; MessagesFile: "compiler:Languages\Vietnamese.isl"
 Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "dist\XiaoZhi-PC.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\XiaoZhi-PC.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 
 [Tasks]

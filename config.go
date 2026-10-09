@@ -53,6 +53,14 @@ type DeviceConfig struct {
 // 默认配置文件路径：可执行文件同目录下的 device_config.json。
 var configPath = "device_config.json"
 
+// resolveConfigPath keeps installed device identity stable across upgrades.
+func resolveConfigPath(explicit string) string {
+ if explicit != "" { return explicit }
+ base,err:=os.UserConfigDir()
+ if err != nil || base == "" { return "device_config.json" }
+ return filepath.Join(base,"XiaoZhiPC","device_config.json")
+}
+
 // loadConfig 读取配置文件；文件不存在或损坏时返回一个空配置（由调用方决定是否重建）。
 func loadConfig() (*DeviceConfig, error) {
 	data, err := os.ReadFile(configPath)

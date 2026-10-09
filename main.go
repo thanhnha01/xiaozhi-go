@@ -56,7 +56,7 @@ func main() {
 	var directVersion int
 	var consoleOnly bool
  var musicURL string
-	flag.StringVar(&cfgPath, "config", "device_config.json", "设备配置文件路径")
+	flag.StringVar(&cfgPath, "config", "", "设备配置文件路径")
 	flag.StringVar(&otaURL, "ota", "", "OTA 服务器地址（默认 https://api.tenclass.net/xiaozhi/ota/）")
 	flag.StringVar(&directWS, "ws", "", "设备 WebSocket URL（不是 MCP Server URL；设置后跳过 OTA 激活）")
 	flag.StringVar(&directToken, "ws-token", os.Getenv("XIAOZHI_WS_TOKEN"), "设备 WebSocket token（推荐通过环境变量 XIAOZHI_WS_TOKEN 设置）")
@@ -65,7 +65,7 @@ func main() {
 	flag.StringVar(&musicURL, "music-url", "https://xiaozhi-master.nguyennha-020201.workers.dev", "HTTPS music Worker base URL")
  flag.BoolVar(&consoleOnly, "console", false, "Chạy giao diện dòng lệnh cũ")
 	flag.Parse()
-	configPath = cfgPath
+	configPath = resolveConfigPath(cfgPath)
 
 	// ---------- 1. 加载/生成本设备身份（MAC + UUID） ----------
 	cfg, err := loadConfig()

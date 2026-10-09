@@ -53,6 +53,27 @@ type DeviceConfig struct {
 // 默认配置文件路径：可执行文件同目录下的 device_config.json。
 var configPath = "device_config.json"
 
+// resolveConfigPath keeps installed device identity stable across upgrades.
+func resolveConfigPath(explicit string) string {
+ if explicit != "" { return explicit }
+ base,err:=os.UserConfigDir()
+ if err != nil || base == "" { return "device_config.json" }
+ dest:=filepath.Join(base,"XiaoZhiPC","device_config.json")
+ // One-time migration from portable releases; never overwrite saved identity.
+ if _,err:=os.Stat(dest);errors.Is(err,os.ErrNotExist){
+  if exe,err:=os.Executable();err==nil{
+   old:=filepath.Join(filepath.Dir(exe),"device_config.json")
+   if b,err:=os.ReadFile(old);err==nil{
+    var saved DeviceConfig
+    if json.Unmarshal(b,&saved)==nil && saved.MacAddress!="" && saved.UUID!=""{
+     if os.MkdirAll(filepath.Dir(dest),0700)==nil{_ = os.WriteFile(dest,b,0600)}
+    }
+   }
+  }
+ }
+ return dest
+}
+
 // loadConfig 读取配置文件；文件不存在或损坏时返回一个空配置（由调用方决定是否重建）。
 func loadConfig() (*DeviceConfig, error) {
 	data, err := os.ReadFile(configPath)
@@ -82,7 +103,7 @@ func (c *DeviceConfig) saveConfig() error {
 		}
 	}
 	tmp := configPath + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, configPath)

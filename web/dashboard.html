@@ -106,7 +106,7 @@ button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus
    <div class="card"><div class="panel-title"><h3>🥰 Biểu cảm của Tiểu Trí</h3></div><p class="note">Thử xem những biểu cảm đáng yêu của nhân vật nhé!</p>
     <div class="mood-grid" style="margin-top:16px"><button class="mood-btn" onclick="previewMascot('happy')">😄 Vui</button><button class="mood-btn" onclick="previewMascot('loving')">😍 Yêu</button><button class="mood-btn" onclick="previewMascot('sad')">😢 Buồn</button><button class="mood-btn" onclick="previewMascot('angry')">😤 Giận</button><button class="mood-btn" onclick="previewMascot('idle')">🙂 Bình thường</button></div>
    </div>
-   <div class="card"><div class="panel-title"><h3>💜 Về Tiểu Trí</h3></div><p class="note">Một người bạn nhỏ để trò chuyện, học hỏi và nghe nhạc mỗi ngày.</p><p class="note" style="margin-top:12px">Phiên bản 1.2.0</p></div>
+   <div class="card"><div class="panel-title"><h3>💜 Về Tiểu Trí</h3></div><p class="note">Một người bạn nhỏ để trò chuyện, học hỏi và nghe nhạc mỗi ngày.</p><p class="note" style="margin-top:12px">Phiên bản 1.3.0</p></div>
    <div class="card"><div class="panel-title"><h3>👋 Hẹn gặp lại</h3></div><p class="note" style="margin-bottom:17px">Tiểu Trí sẽ luôn chờ bạn trở lại.</p><button class="btn soft" onclick="exitApp()">Thoát ứng dụng</button></div>
   </div>
  </div></section>
@@ -119,6 +119,13 @@ button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus
  <button class="btn primary wide" onclick="openExternal('https://xiaozhi.me')">Mở trang kết nối ↗</button>
  <div class="pair-foot">Sau khi xác thực thành công, màn hình này sẽ tự đóng.</div></div>
 </div>
+<div id="updateOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+ <div class="pair-card"><div class="pair-icon">🎁</div><h2 id="updateTitle">Có phiên bản Tiểu Trí mới!</h2>
+ <p id="updateMessage">Đã có bản nâng cấp với nhiều cải tiến.</p>
+ <button id="updateNow" class="btn primary wide" onclick="startUpdate()">Cập nhật ngay</button>
+ <button class="btn soft wide" style="margin-top:10px" onclick="dismissUpdate()">Để sau</button>
+ <div id="updateProgress" class="pair-foot"></div></div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 "use strict";
@@ -126,7 +133,7 @@ const token="{{LOCAL_TOKEN}}",$=id=>document.getElementById(id);
 const mascotMap={idle:"idle.gif",listening:"thinking.gif",speaking:"speaking.gif",thinking:"thinking.gif",happy:"speaking.gif",laughing:"speaking.gif",funny:"speaking.gif",loving:"loving.gif",sad:"sad.gif",crying:"sad.gif",angry:"angry.gif",confused:"thinking.gif",surprised:"speaking.gif",shocked:"angry.gif",embarrassed:"thinking.gif",relaxed:"idle.gif",sleepy:"idle.gif",winking:"idle.gif",confident:"speaking.gif",silly:"speaking.gif"};
 const moodLabels={idle:["Chào bạn!","Hôm nay bạn muốn trò chuyện gì nào?"],listening:["Tôi đang lắng nghe","Cứ kể cho tôi nghe nhé!"],speaking:["Để tôi kể bạn nghe","Tiểu Trí đang trả lời nè!"],thinking:["Chờ tôi một chút nhé","Tôi đang suy nghĩ..."],happy:["Vui quá đi!","Thật tuyệt khi được trò chuyện cùng bạn."],loving:["Thương bạn nhiều!","Một cái ôm thật to từ Tiểu Trí."],sad:["Hơi buồn một chút","Tôi vẫn đang lắng nghe bạn."],crying:["Hu hu...","Chúng mình sẽ ổn thôi."],angry:["Hơi bực một chút","Để tôi bình tĩnh lại nhé."]};
 const titles={home:["Xin chào! 👋","Tiểu Trí luôn sẵn sàng trò chuyện với bạn."],chat:["Chuyện trò một chút 💬","Những cuộc hội thoại dễ thương của chúng ta."],music:["Góc âm nhạc 🎶","Mở bài hát bạn yêu thích nào."],settings:["Cài đặt ✨","Điều chỉnh Tiểu Trí theo sở thích của bạn."]};
-let currentPage="home",activeFile="",previewUntil=0,previewKind="idle",eventSignature="",toastTimer=null,lastState="idle";
+let dismissedUpdate="",updateInProgress=false;let currentPage="home",activeFile="",previewUntil=0,previewKind="idle",eventSignature="",toastTimer=null,lastState="idle";
 function showPage(page){if(!titles[page])return;currentPage=page;document.querySelectorAll("[data-page]").forEach(el=>el.classList.toggle("active",el.dataset.page===page));document.querySelectorAll(".page").forEach(el=>el.classList.toggle("active",el.id==="page-"+page));$("pageTitle").textContent=titles[page][0];$("pageSubtitle").textContent=titles[page][1]}
 document.querySelectorAll("[data-page]").forEach(btn=>btn.addEventListener("click",()=>showPage(btn.dataset.page)));
 function openExternal(link){window.open(link,"_blank","noopener,noreferrer")}
@@ -142,6 +149,10 @@ const target=$("history");target.replaceChildren();if(!valid.length){let e=creat
 for(const e of valid){let row=createText("div","","chat-message"+(e.kind==="stt"?" me":""));if(e.kind!=="stt")row.append(createText("span","🌟","chat-icon"));const bubble=createText("div",e.text,"chat-content");bubble.append(createText("small",e.time));row.append(bubble);target.append(row)}target.scrollTop=target.scrollHeight}
 function statusLabel(s){if(s.phase==="error")return"Đang gặp sự cố";if(s.phase==="connecting"||s.phase==="activating"||s.phase==="starting")return"Đang kết nối";return s.phase==="ready"?"Đã kết nối":"Đang kết nối"}
 function updateUI(s){
+ if(s.update?.available && s.update.version!==dismissedUpdate){$("updateOverlay").classList.remove("hidden");$("updateMessage").textContent="Đã có bản "+s.update.version+". Cập nhật ngay để sử dụng phiên bản mới."}
+ else $("updateOverlay").classList.add("hidden");
+ if(s.update_busy){$("updateNow").disabled=true;$("updateProgress").textContent="Đang tải và xác minh bộ cài, vui lòng chờ..."}
+
  const status=statusLabel(s),isReady=s.phase==="ready";$("statusText").textContent=status;$("status").classList.toggle("offline",!isReady);
  const hasCode=typeof s.activation==="string"&&s.activation.trim().length>0;
  $("activationOverlay").classList.toggle("hidden",!hasCode);
@@ -166,6 +177,8 @@ function updateUI(s){
  lastState=s.phase;
 }
 async function refresh(){try{const r=await fetch("/api/status",{cache:"no-store"});if(!r.ok)throw Error("Offline");updateUI(await r.json())}catch(e){$("statusText").textContent="Đang kết nối";$("status").classList.add("offline");$("start").disabled=true;$("stop").disabled=true}}
+function dismissUpdate(){dismissedUpdate=$("updateMessage").textContent.match(/bản ([0-9.]+)/)?.[1]||"dismissed";$("updateOverlay").classList.add("hidden")}
+async function startUpdate(){if(updateInProgress)return;updateInProgress=true;$("updateNow").disabled=true;$("updateProgress").textContent="Đang tải bản cập nhật...";await send("install_update")}
 function setup(){const bars=$("micVisual");for(let i=0;i<25;i++){const b=document.createElement("span");b.style.setProperty("--i",String(i));b.style.setProperty("--h",String(10+Math.round(33*Math.abs(Math.sin(i*.8)*Math.cos(i*.36)))));bars.append(b)}$("song").addEventListener("keydown",e=>{if(e.key==="Enter")playMusic()});$("artist").addEventListener("keydown",e=>{if(e.key==="Enter")playMusic()});refresh();setInterval(refresh,1000)}
 async function exitApp(){if(window.confirm("Bạn muốn tạm biệt Tiểu Trí và thoát ứng dụng?"))await send("quit")}
 setup();

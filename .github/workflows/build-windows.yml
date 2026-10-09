@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags: ['v1.2.0']
   workflow_dispatch:
 
 permissions:
@@ -65,7 +66,7 @@ jobs:
           ldd dist/XiaoZhi-PC.exe || true
       - name: Package portable release
         shell: pwsh
-        run: Compress-Archive -Path dist/* -DestinationPath XiaoZhi-PC-v1.1.0-Windows-x64.zip -Force
+        run: Compress-Archive -Path dist/* -DestinationPath XiaoZhi-PC-v1.2.0-Windows-x64.zip -Force
       - name: Upload portable Windows app
         uses: actions/upload-artifact@v4
         with:
@@ -74,10 +75,10 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish v1.1.0 release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'XiaoZhi PC v1.1.0')
+      - name: Publish v1.2.0 release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.ref, 'refs/tags/v1.2.0')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v1.1.0 "XiaoZhi-PC-v1.1.0-Windows-x64.zip" --title "XiaoZhi PC v1.1.0 - Music Playback" --notes "Windows x64 portable app: device-side MCP self.music.play_song/pause/resume/stop/get_status, direct HTTP MP3 streaming from Cloudflare Worker, and a Vietnamese Music tab. Keep your existing device_config.json to preserve activation." --target "${{ github.sha }}"
+          gh release create v1.2.0 "XiaoZhi-PC-v1.1.0-Windows-x64.zip" --title "XiaoZhi PC v1.2.0 - Qoobee Edition" --notes "XiaoZhi PC v1.2.0 with redesigned consumer UI, six embedded Qoobee GIFs, first-time-only activation code, existing voice and music features. Keep device_config.json to preserve pairing." --target "${{ github.sha }}"

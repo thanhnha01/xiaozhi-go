@@ -36,6 +36,8 @@ type Dashboard struct {
  emotion string
  windowClose func()
  events []dashboardEvent
+ ttsInProgress bool
+ ttsEventIndex int
  logs []string
  update appUpdate
  updateBusy bool
@@ -97,7 +99,7 @@ func (d *Dashboard) event(kind,message string){
  if message==""{return}
  d.mu.Lock()
  d.events=append(d.events,dashboardEvent{Kind:kind,Text:message,Time:time.Now().Format("15:04:05")})
- if len(d.events)>120{d.events=d.events[len(d.events)-120:]}
+ d.trimEventHistoryLocked()
  d.mu.Unlock()
 }
 // Write captures technical logs; the primary screen displays localized events.

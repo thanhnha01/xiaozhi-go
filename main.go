@@ -288,22 +288,24 @@ func (app *App) handleMessage(msg *Message) {
 			app.sm.TransitionTo(StateSpeaking)
 			log.Println("开始播放 TTS")
 			app.audio.ClearOutput()
+            if app.dashboard != nil {app.dashboard.beginTTSReply()}
 		case "stop":
 			app.sm.TransitionTo(StateIdle)
 			log.Println("TTS 播放结束")
+            if app.dashboard != nil {app.dashboard.endTTSReply()}
 			// GUI uses explicit push-to-talk. Do not reopen microphone after
 			// TTS stops unless the user presses "Bắt đầu nói" again.
 			if app.dashboard == nil { app.startListening() }
 		case "sentence_start":
 			log.Printf("字幕: %s", msg.Text)
-			if app.dashboard != nil {app.dashboard.event("tts",msg.Text)}
+			if app.dashboard != nil {app.dashboard.appendTTSSentence(msg.Text)}
 		}
 	case "stt":
 		log.Printf("识别结果: %s", msg.Text)
 		if app.dashboard != nil {app.dashboard.event("stt",msg.Text)}
 	case "llm":
 		log.Printf("LLM: 情感=%s 文本=%s", msg.Emotion, msg.Text)
-		if app.dashboard != nil {app.dashboard.setEmotion(msg.Emotion);app.dashboard.event("llm",msg.Text)}
+		if app.dashboard != nil {app.dashboard.setEmotion(msg.Emotion)}
 	case "mcp":
 		app.handleMcp(msg.Payload)
 	case "system":

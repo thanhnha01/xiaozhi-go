@@ -76,7 +76,7 @@ jobs:
           retention-days: 30
 
       - name: Publish v1.2.0 release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'release: XiaoZhi PC v1.2.0')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'XiaoZhi PC v1.2.0')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

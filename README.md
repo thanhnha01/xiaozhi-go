@@ -120,49 +120,23 @@ go test ./...
 
 MIT
 
-## Bộ GIF biểu cảm Qoobee (XiaoZhi PC)
 
-Bản cập nhật tích hợp giao diện nhân vật Qoobee trên tab **Trang chính**, tự đổi biểu cảm theo trạng thái và tin nhắn `llm.emotion` của server.
+## XiaoZhi PC v1.3.0 — Windows Installer
 
-**Cài bộ GIF:** giải nén tệp `XiaoZhi-Qoobee-Emotions.zip` đi kèm bản cập nhật vào **cùng thư mục chứa `XiaoZhi-PC.exe`** sao cho tồn tại:
+**Cài đặt mới:** tải `XiaoZhi-PC-Setup-v1.3.0.exe` từ [GitHub Releases](https://github.com/thanhnha01/xiaozhi-go/releases), chạy bộ cài. Không cần quyền Administrator; ứng dụng được cài tại `%LOCALAPPDATA%\\Programs\\XiaoZhi PC`. Có shortcut Start Menu và tùy chọn Desktop. Ứng dụng xuất hiện trong Windows Installed Apps / Programs and Features và có bộ gỡ cài đặt.
 
-```text
-XiaoZhi-PC.exe
-device_config.json         (giữ nguyên file cũ)
-mascot/
-  bom-dia.gif
-  cute-dragon-love-you.gif
-  qoobee.gif
-  qoobee-cry.gif
-  qoo-bee-qoo-bee-agapi.gif
-  qoobee-upset.gif
-```
+**Đóng gói:** một file Setup EXE chứa XiaoZhi-PC.exe và các DLL âm thanh Opus/PortAudio cần thiết. Khi cài, bộ cài giải nén DLL cạnh EXE; ảnh Qoobee và dashboard đã nhúng vào EXE. Đây là kiến trúc an toàn và tương thích với Go+cgo.
 
-Có thể đặt một thư mục riêng qua biến môi trường `XIAOZHI_MASCOT_DIR` trước khi khởi động. Nếu GIF chưa được cài, các chức năng thoại và âm nhạc vẫn hoạt động nhưng nhân vật không hiển thị.
+**Danh tính thiết bị:** mỗi cấu hình Windows mới tạo một MAC *phần mềm* dạng locally administered, không phải địa chỉ MAC vật lý của card mạng, cùng UUID v4 từ nguồn ngẫu nhiên an toàn. Lưu vào `%APPDATA%\\XiaoZhiPC\\device_config.json` và tái sử dụng qua mỗi lần cập nhật. Mã kích hoạt thực tế do máy chủ OTA Xiaozhi trả về, không phải mã tự tạo từ client. Khi máy chủ báo đã liên kết, màn hình nhập mã tự ẩn.
 
-Ánh xạ:
-- `idle` → `bom-dia.gif` (ảnh tĩnh trong tệp GIF gốc)
-- `listening` → `qoo-bee-qoo-bee-agapi.gif`
-- `speaking`, `happy`, `funny` → `qoobee.gif`
-- `loving` → `cute-dragon-love-you.gif`
-- `sad`, `crying` → `qoobee-cry.gif` (ảnh tĩnh trong tệp GIF gốc)
-- `angry`, `shocked` → `qoobee-upset.gif`
-- `thinking`, `confused` → `qoo-bee-qoo-bee-agapi.gif`
+**Chuyển từ ZIP cũ:** Nếu bạn muốn giữ danh tính đã liên kết, đặt `device_config.json` cũ vào `%APPDATA%\\XiaoZhiPC\\device_config.json` trước khi chạy bản mới. Việc tạo shortcut hoặc cài đặt không tự đưa máy cũ lên xiaozhi.me; hãy liên kết qua mã kích hoạt máy chủ.
 
-Khi đang nghe, nhân vật ưu tiên trạng thái `listening`. Khi AI trả lời, biểu cảm `llm.emotion` sẽ thay thế GIF nói mặc định nếu có; sau kết thúc TTS sẽ về trạng thái chờ. Nút xem thử chỉ thay đổi giao diện trong 5 giây, không gửi lệnh tới AI. Hiệu ứng hoạt ảnh của các file phụ thuộc số khung hình có sẵn; mã không tự tạo thêm khung hình.
+**Cập nhật:** khi mở ứng dụng, Tiểu Trí kiểm tra bản Release mới nhất trên GitHub. Khi có phiên bản mới hơn và đúng hai asset bộ cài + SHA-256, giao diện hiển thị lựa chọn **Cập nhật ngay** hoặc **Để sau**. Khi chấp nhận, ứng dụng tải bộ cài, so khớp SHA-256, khởi chạy bộ cài Inno Setup rồi đóng ứng dụng cũ. Bộ cài thay thế chương trình đã cài mà không xóa hồ sơ thiết bị.
 
-**Lưu ý quyền sử dụng:** các GIF do người dùng cung cấp, không bao gồm trong mã nguồn repository hoặc gói Release EXE. Hãy bảo đảm bạn có quyền sử dụng và phân phối chúng.
+**Gỡ cài đặt:** Windows Settings → Apps → Installed apps → Tiểu Trí → Uninstall. Hộp thoại cảnh báo trước khi xóa `%APPDATA%\\XiaoZhiPC` và `%LOCALAPPDATA%\\XiaoZhiPC`. Thao tác sẽ xóa mã thiết bị/lịch sử cấu hình, bộ nhớ WebView2 và shortcut; sau khi cài lại cần ghép nối mới.
 
-## Giao diện người dùng thế hệ mới
+**Lưu ý:** Trình cài đặt chưa được ký mã Authenticode, nên Windows SmartScreen có thể cảnh báo. Chỉ tải từ GitHub Releases chính thức. Máy cần Microsoft Edge WebView2 Runtime để hiển thị giao diện.
 
-Bản UI hướng tới người dùng cuối gồm bốn mục: **Trang chủ**, **Trò chuyện**, **Âm nhạc**, **Cài đặt**. Không hiển thị MAC, phiên WebSocket, nhật ký kỹ thuật hay MCP ở giao diện thông thường. Giao diện đổi Qoobee khi nghe, nói và nhận `llm.emotion`.
+### Build Windows và kiểm thử
 
-### Màn hình ghép nối lần đầu
-
-Mã xác thực hiển thị dạng modal **chỉ khi OTA trả về activation.code**. Khi OTA nhận xác thực thành công và kết nối chuyển sang `ready`, ứng dụng tự xóa mã và ẩn modal. Cấu hình danh tính thiết bị tiếp tục nằm trong `device_config.json`.
-
-### Mapping mascot UI mới
-
-`idle` → `qoobee.gif` (animation), `speaking` / `happy` → `bom-dia.gif` (GIF tĩnh 1 frame), `listening` → `qoo-bee-qoo-bee-agapi.gif`.
-
-> Chưa có đủ quyền phân phối công khai bộ GIF gốc. Nếu phát hành repo công khai, cần xác minh giấy phép ảnh. Khi chưa commit được GIF nhị phân, ứng dụng đang đọc chúng từ thư mục `mascot/` bên cạnh EXE theo cơ chế hiện tại.
+Workflow `.github/workflows/build-windows.yml` chạy Go tests, tạo icon và tài nguyên Windows, build EXE và DLL, biên dịch Inno Setup, tạo checksum SHA-256, đính kèm installer và ZIP vào artifact. Release v1.3.0 được tạo sau khi kiểm thử trên CI thành công.

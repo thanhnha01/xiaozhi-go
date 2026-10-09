@@ -16,6 +16,7 @@ import (
  "strings"
  "sync"
  "time"
+ "context"
 )
 
 //go:embed web/dashboard.html
@@ -36,6 +37,8 @@ type Dashboard struct {
  windowClose func()
  events []dashboardEvent
  logs []string
+ update appUpdate
+ updateBusy bool
 }
 func newDashboard(app *App) (*Dashboard,error) {
  secret:=make([]byte,24)
@@ -49,6 +52,7 @@ func (d *Dashboard) start() error {
  d.url="http://"+ln.Addr().String()
  d.server=&http.Server{Handler:d.handler(),ReadHeaderTimeout:5*time.Second}
  go func(){if err:=d.server.Serve(ln);err!=nil&&!errors.Is(err,http.ErrServerClosed){d.setError("Giao diện gặp lỗi: "+err.Error())}}()
+ go d.checkUpdates()
  if err:=openDesktopWindow(d);err!=nil{d.event("system","Không mở được cửa sổ ứng dụng; chuyển sang trình duyệt: "+err.Error()); if fallbackErr:=openLocalBrowser(d.url);fallbackErr!=nil{d.event("system","Truy cập giao diện tại: "+d.url)}}
  return nil
 }
@@ -120,6 +124,7 @@ func (d *Dashboard) handler() http.Handler{
   phase,failure,activation,emotion:=d.phase,d.errorMessage,d.activation,d.emotion
   events:=append([]dashboardEvent{},d.events...)
   logs:=append([]string{},d.logs...)
+  update,busy:=d.update,d.updateBusy
   d.mu.RUnlock()
   state:=d.app.sm.Current().String()
   volume:=float32(0.7)
@@ -131,7 +136,7 @@ func (d *Dashboard) handler() http.Handler{
   w.Header().Set("Content-Type","application/json; charset=utf-8")
   _=json.NewEncoder(w).Encode(map[string]any{
    "phase":phase,"state":state,"emotion":emotion,"recording":state=="listening","activation":activation,
-   "error":failure,"mac":d.app.cfg.MacAddress,"volume":volume,"events":events,"logs":logs,
+   "error":failure,"update":update,"update_busy":busy,"app_version":appVersion,"mac":d.app.cfg.MacAddress,"volume":volume,"events":events,"logs":logs,
    "mic_level":micLevel,"music":func()MusicStatus{if d.app.music!=nil{return d.app.music.Status()};return MusicStatus{State:"stopped"}}(),"mic_frames_sent":d.app.micFramesSent.Load(),
    "mic_frames_dropped":d.app.micFramesDropped.Load(),
   })
@@ -142,6 +147,7 @@ func (d *Dashboard) handler() http.Handler{
   var req struct {Action string `json:"action"`;Value float32 `json:"value"`;Song string `json:"song"`;Artist string `json:"artist"`}
   if err:=json.NewDecoder(io.LimitReader(r.Body,2048)).Decode(&req);err!=nil{http.Error(w,"Dữ liệu không hợp lệ",400);return}
   err:=d.performAction(req.Action,req.Value)
+  if req.Action=="install_update"{err=d.startUpdate()}
   if req.Action=="music_play" && d.app.music!=nil {err=d.app.music.Play(req.Song,req.Artist)}
   w.Header().Set("Content-Type","application/json; charset=utf-8")
   if err!=nil{
@@ -186,5 +192,34 @@ func (d *Dashboard) performAction(action string,value float32)error{
   d.event("system","Đã yêu cầu ngắt câu trả lời.")
  default:return fmt.Errorf("thao tác không được hỗ trợ")
  }
+ return nil
+}
+
+func(d *Dashboard) checkUpdates(){
+ ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second)
+ defer cancel()
+ update,err:=checkAppUpdate(ctx)
+ d.mu.Lock()
+ if err==nil{d.update=update}
+ d.mu.Unlock()
+}
+func(d *Dashboard) startUpdate()error{
+ d.mu.Lock()
+ if d.updateBusy{d.mu.Unlock();return fmt.Errorf("đang tải bản cập nhật")}
+ if !d.update.Available{d.mu.Unlock();return fmt.Errorf("không có bản cập nhật")}
+ u:=d.update;d.updateBusy=true
+ d.mu.Unlock()
+ go func(){
+  ctx,cancel:=context.WithTimeout(context.Background(),4*time.Minute)
+  defer cancel()
+  path,err:=downloadVerifiedUpdate(ctx,u)
+  if err==nil{err=launchUpdateInstaller(path)}
+  if err!=nil{
+   d.mu.Lock();d.updateBusy=false;d.mu.Unlock()
+   d.event("system","Cập nhật thất bại: "+err.Error())
+   return
+  }
+  d.app.quitOnce.Do(func(){close(d.app.quitChan)})
+ }()
  return nil
 }

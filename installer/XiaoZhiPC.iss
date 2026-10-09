@@ -33,7 +33,6 @@ UsePreviousAppDir=yes
 VersionInfoVersion={#MyAppVersion}.0
 
 [Languages]
-Name: "vi"; MessagesFile: "compiler:Languages\Vietnamese.isl"
 Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Files]

@@ -31,6 +31,7 @@ type App struct {
 	sm    *StateMachine
 	proto *ProtocolClient
 	audio *AudioManager
+ music *MusicPlayer
 	http  *http.Client
 
 	// 监听状态控制
@@ -54,13 +55,15 @@ func main() {
 	var directToken string
 	var directVersion int
 	var consoleOnly bool
+ var musicURL string
 	flag.StringVar(&cfgPath, "config", "device_config.json", "设备配置文件路径")
 	flag.StringVar(&otaURL, "ota", "", "OTA 服务器地址（默认 https://api.tenclass.net/xiaozhi/ota/）")
 	flag.StringVar(&directWS, "ws", "", "设备 WebSocket URL（不是 MCP Server URL；设置后跳过 OTA 激活）")
 	flag.StringVar(&directToken, "ws-token", os.Getenv("XIAOZHI_WS_TOKEN"), "设备 WebSocket token（推荐通过环境变量 XIAOZHI_WS_TOKEN 设置）")
 	flag.IntVar(&directVersion, "ws-version", 1, "直连设备 WebSocket 协议版本（1, 2 或 3）")
 	flag.IntVar(&listenTimeout, "listen-timeout", 0, "自动停止监听的超时秒数（0 为不自动停止）")
-	flag.BoolVar(&consoleOnly, "console", false, "Chạy giao diện dòng lệnh cũ")
+	flag.StringVar(&musicURL, "music-url", "https://xiaozhi-master.nguyennha-020201.workers.dev", "HTTPS music Worker base URL")
+ flag.BoolVar(&consoleOnly, "console", false, "Chạy giao diện dòng lệnh cũ")
 	flag.Parse()
 	configPath = cfgPath
 
@@ -102,6 +105,8 @@ func main() {
 		log.Fatalf("Không khởi tạo được âm thanh: %v",err)
 	}
 	app.audio = audio
+ app.music=NewMusicPlayer(audio,musicURL)
+ defer app.music.Stop()
 	defer audio.Close()
 	audio.SetStateCallback(func() State { return app.sm.Current() })
 

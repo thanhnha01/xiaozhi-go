@@ -1,140 +1,172 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>XiaoZhi PC • Trợ lý giọng nói</title>
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f8f6ff"><title>Tiểu Trí — Người bạn AI của bạn</title>
 <style>
-:root{font:15px 'Segoe UI',system-ui,Arial,sans-serif;color:#e9f1ff;background:#0c1523}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(110deg,#0b1724,#0e1928 65%,#0b1625);min-height:100vh}
-.shell{display:grid;grid-template-columns:204px minmax(0,1fr);min-height:100vh}
-.sidebar{background:#101b2a;border-right:1px solid #203148;display:flex;flex-direction:column;padding:24px 12px;gap:8px}
-.brand{display:flex;align-items:center;gap:10px;margin-bottom:38px;padding:0 8px;font-size:22px;font-weight:760}
-.robot{display:grid;place-items:center;width:37px;height:37px;background:#1c6bef;border:1px solid #4da4ff;box-shadow:0 0 25px #175fc066;border-radius:12px}
-.tab{display:flex;align-items:center;gap:14px;padding:14px 16px;color:#acbdd6;border:none;border-radius:10px;cursor:pointer;background:transparent;text-align:left;font:inherit;font-weight:600;width:100%}
-.tab:hover{background:#1e3045}.tab.active{color:#fff;background:linear-gradient(135deg,#1a58b4,#11417d)}
-.tab .glyph{width:24px;font-size:20px}.bottom{margin-top:auto;padding:18px 10px;border-top:1px solid #25384c;color:#91a4bd;font-size:12px}
-main{padding:28px 25px 10px;max-width:1600px;width:100%;margin:auto}
-.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:4px 0 26px}
-h1{font-size:32px;letter-spacing:-.8px;margin:0;font-weight:750}h1 small{display:block;font-size:15px;font-weight:400;color:#a4b4ce;margin-top:5px;letter-spacing:0}
-.hint{padding:13px 18px;background:#162439;border:1px solid #283c55;border-radius:12px;color:#a6bfdf}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(260px,.95fr);gap:14px;grid-auto-flow:row}
-.card{background:linear-gradient(145deg,#142236,#121d2d);border:1px solid #2a3e56;border-radius:14px;padding:19px;min-width:0;box-shadow:0 4px 18px #0002}
-.card h2{font-size:17px;font-weight:680;margin:0 0 18px;display:flex;align-items:center;gap:10px}
-.card h2 .ico{color:#66b5ff;font-size:22px}
-.connection .dot{display:inline-block;background:#42df77;width:13px;height:13px;border-radius:50%;box-shadow:0 0 12px #36da7799}
-.pair{display:flex;justify-content:space-between;gap:12px;margin:14px 0;color:#97a9c3}
-.pair strong{color:#e6edff;font-weight:590;overflow-wrap:anywhere;text-align:right}
-.green{color:#4be887!important}.code{font-weight:760;font-size:38px;letter-spacing:5px;text-align:center;margin:22px 0;color:#edf4ff}
-.card p{color:#a6b7cd;font-size:13px;line-height:1.6}
-.button{border:1px solid #3a5676;background:#22334b;color:#e7f0ff;padding:12px 16px;border-radius:11px;font-size:15px;cursor:pointer;font-weight:630}
-.button:hover{filter:brightness(1.15)}.button:disabled{opacity:.4;cursor:default}.button.primary{background:linear-gradient(110deg,#1686fa,#1661e9);border-color:#267ffe}
-.button.danger{background:#44263a;border-color:#704058}.button.full{width:100%}
-.voice{grid-column:span 2}.conversation{grid-column:span 2;min-height:275px}
-.audio{display:flex;align-items:center;justify-content:center;gap:28px;min-height:116px}
-.mic{width:91px;height:91px;border:2px solid #43a9fc;border-radius:100%;box-shadow:0 0 0 13px #1b42654d,0 0 22px #1b7aca66;display:grid;place-items:center;font-size:40px;background:radial-gradient(circle,#18578c,#123052)}
-.wave{flex:1;max-width:400px}.bars{display:flex;align-items:center;justify-content:center;gap:4px;height:55px}
-.bars i{display:block;background:#36aaff;width:3px;height:var(--h);border-radius:10px;opacity:.8}
-.wave small{display:block;text-align:center;color:#a7b9d2}.controls{display:flex;gap:10px;margin-top:20px}.controls button{flex:1}
-.chats{height:255px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
-.chat{max-width:88%;padding:10px 14px;line-height:1.5;border-radius:15px;background:#21334b;align-self:flex-start;white-space:pre-wrap;overflow-wrap:anywhere}
-.chat.stt{background:#1353ad;align-self:flex-end}.chat small{display:block;opacity:.75;font-size:11px;margin-bottom:3px}
-.chat.system{font-size:12px;background:#19283b;color:#a3b4c9;align-self:center}.chat.tts{border:1px solid #286f78}
-.logs{height:194px;overflow:auto;padding:10px;background:#0c1827;border-radius:10px;border:1px solid #21334b;color:#90add0;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
-.volume input{width:100%;accent-color:#2e8afa}.volumeTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.activation p{margin-bottom:12px}.info .pair{font-size:12px}
-.footer{text-align:center;color:#7186a5;font-size:12px;padding:19px 0}
-#notice{color:#ffaeae;font-size:12px;min-height:16px}
-.section-only{display:none}.hidden{display:none!important}
-@media(max-width:1200px){.grid{grid-template-columns:1fr 1fr}.rightSide{grid-column:span 1}.voice,.conversation{grid-column:span 2}}
-@media(max-width:760px){.shell{grid-template-columns:1fr}.sidebar{flex-direction:row;overflow-x:auto;padding:8px}.brand,.bottom{display:none}.tab{white-space:nowrap;font-size:12px}.tab .glyph{display:none}main{padding:16px}.grid{grid-template-columns:1fr}.card,.voice,.conversation,.rightSide{grid-column:auto}.top{display:block}.hint{display:none}}
-.mascot-panel{display:flex;align-items:center;gap:22px;min-height:170px;padding:13px 18px;border:1px solid #375269;border-radius:15px;background:radial-gradient(circle at 30% 25%,#243b4b,#102132 80%);margin-bottom:17px}
-.mascot-panel img{display:block;width:152px;height:152px;object-fit:contain;flex:none;image-rendering:auto}
-.mascot-name{font-weight:730;font-size:22px;color:#fff}
-.mascot-description{color:#b9d0e4;font-size:13px;line-height:1.5;margin-top:6px}
-.mascot-preview{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
-.mascot-preview button{border:1px solid #44617b;border-radius:8px;background:#203a53;color:#dcefff;cursor:pointer;padding:5px 9px;font-size:12px}
-.mascot-preview button:hover{background:#315774}
-@media(max-width:760px){.mascot-panel{flex-direction:column;text-align:center}.mascot-panel img{width:128px;height:128px}}
+:root{font:15px/1.5 "Segoe UI",Inter,system-ui,sans-serif;color:#292343;background:#faf8ff;--ink:#292343;--muted:#87819e;--violet:#7657db;--light:#f4f0ff;--border:#ebe6f4;--shadow:0 14px 46px rgba(60,43,115,.07)}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 85% 8%,#f4eaff 0,transparent 36%),radial-gradient(circle at 16% 83%,#fff0ea 0,transparent 39%),#faf8ff}
+button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid #ae95ff;outline-offset:3px}button:disabled{opacity:.45;cursor:not-allowed}
+.shell{display:grid;grid-template-columns:224px minmax(0,1fr);min-height:100vh;max-width:1660px;margin:auto}
+.sidebar{background:#fffdfefa;padding:30px 16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.brand{display:flex;gap:11px;align-items:center;margin:0 8px 46px}.brand-logo{width:46px;height:46px;border-radius:17px;background:#f1eaff;display:grid;place-items:center;font-size:25px}.brand strong{font-size:21px;letter-spacing:-.7px}.brand small{display:block;font-size:12px;color:#948ca9;letter-spacing:.1px}
+.nav{width:100%;display:flex;gap:12px;align-items:center;padding:13px 17px;border:0;background:transparent;color:#827a9c;font-weight:650;text-align:left;border-radius:15px}.nav svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.nav:hover{background:#f8f5ff;color:#684fc7}.nav.active{background:#f0eaff;color:#7254d1;box-shadow:inset 0 0 0 1px #e7ddff}
+.sidebar-bottom{margin-top:auto;color:#a6a0b3;font-size:12px;padding:12px 17px;border-top:1px solid var(--border)}
+.page-wrap{padding:32px clamp(24px,5vw,74px) 38px;min-width:0}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:34px}
+.topbar h1{margin:0;font-size:29px;font-weight:790;letter-spacing:-1px}.topbar p{margin:3px 0 0;color:#928ba7;font-size:14px}
+.status{display:inline-flex;align-items:center;gap:8px;color:#67836e;background:#effbf0;border:1px solid #dbefdc;padding:8px 13px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
+.status i{background:#69bb7d;border-radius:50%;width:8px;height:8px}.status.offline{color:#986b3e;background:#fff4e8;border-color:#ffead2}.status.offline i{background:#eca854}
+.page{display:none;animation:appear .28s ease}.page.active{display:block}@keyframes appear{from{opacity:.4;transform:translateY(7px)}to{opacity:1;transform:none}}
+.home-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(270px,.75fr);gap:20px}
+.card{background:#fff;border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);padding:25px;min-width:0}
+.hero{background:linear-gradient(145deg,#fff 15%,#faf5ff 62%,#fff4ee);position:relative;overflow:hidden;text-align:center;min-height:490px;display:flex;align-items:center;flex-direction:column}
+.hero:before,.hero:after{content:"";position:absolute;border-radius:50%;pointer-events:none}.hero:before{width:400px;height:400px;background:#f3e9ff;top:-255px;right:-180px}.hero:after{width:170px;height:170px;background:#fff0d9;bottom:-94px;left:-67px}
+.eyebrow{font-size:12px;font-weight:800;color:#a387d5;text-transform:uppercase;letter-spacing:2.2px}
+.mascot-wrap{position:relative;z-index:1;margin:6px auto 0;width:min(100%,320px);height:286px;display:grid;place-items:center}
+.mascot-glow{position:absolute;width:245px;height:245px;border-radius:50%;background:#fff9ed;box-shadow:0 0 0 13px #fff5eeaa,0 0 80px #ffd9b850}
+.mascot-wrap img{position:relative;z-index:2;max-width:258px;max-height:258px;width:100%;height:100%;object-fit:contain;image-rendering:auto}
+.hero h2{z-index:1;font-size:24px;letter-spacing:-.5px;margin:7px 0 0}.hero .subtitle{z-index:1;margin:4px 0 0;color:#988ba6;font-size:13px}
+.speech{margin-top:18px;background:#fff;border:1px solid #e8defd;border-radius:16px;padding:10px 18px;z-index:1;font-weight:600;font-size:13px;color:#736297}
+.micro-controls{display:flex;gap:11px;justify-content:center;align-items:center;margin-top:22px;z-index:1;flex-wrap:wrap}
+.btn{border:0;background:#f3eefc;color:#6e57ba;border-radius:15px;padding:12px 17px;font-weight:740;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,background .15s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px)}.btn.primary{background:linear-gradient(125deg,#8565ed,#6d50d8);color:white;box-shadow:0 9px 25px #7453d747}.btn.primary:hover{background:linear-gradient(125deg,#7656e4,#5d41ce)}
+.btn.soft{background:#fff;border:1px solid #e8e1f7}.btn.danger{background:#fff0f2;color:#c65b73}.btn.wide{width:100%}.btn:disabled{transform:none}
+.side-stack{display:flex;flex-direction:column;gap:20px}.panel-title{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:14px}.panel-title h3{margin:0;font-size:17px;letter-spacing:-.2px}.quiet-link{font-size:12px;font-weight:700;color:#8265db;border:0;background:none}
+.mic-visual{height:91px;display:flex;align-items:center;justify-content:center;gap:5px;background:#f7f2ff;border-radius:17px;margin:13px 0 15px}.mic-visual span{width:5px;min-height:6px;max-height:50px;height:calc(var(--h)*1px);border-radius:8px;background:linear-gradient(#a490f2,#7463dc);opacity:.5;transition:height .24s}.mic-visual.live span{opacity:1;animation:wave 1s ease-in-out infinite alternate;animation-delay:calc(var(--i)*-65ms)}@keyframes wave{from{height:8px}to{height:calc(var(--h)*1px)}}
+.note{font-size:13px;color:#928ca1;margin:0}.recent{display:flex;flex-direction:column;gap:10px;min-height:110px}.recent-item{border-left:3px solid #d4c5f5;padding:4px 0 4px 13px;font-size:13px;color:#686079;line-height:1.5}.recent-item.me{border-color:#f3c2a6}.recent-item small{display:block;font-weight:750;color:#a290bf;font-size:11px}
+.page-heading{margin:0 0 19px;font-size:22px;letter-spacing:-.4px}.description{color:var(--muted);margin:-12px 0 24px;font-size:13px}
+.chat-box{display:flex;flex-direction:column;gap:17px;min-height:400px;max-height:65vh;overflow-y:auto;padding:8px 2px 12px}
+.chat-message{display:flex;gap:11px;align-items:flex-end}.chat-message.me{justify-content:flex-end}.chat-icon{width:33px;height:33px;border-radius:12px;background:#f4eeff;display:grid;place-items:center;font-size:17px;flex:0 0 33px}
+.chat-content{max-width:min(78%,600px);padding:13px 16px;border-radius:17px 17px 17px 4px;background:#f5f2fc;color:#51466d;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-message.me .chat-content{border-radius:17px 17px 4px 17px;background:#7859df;color:#fff}
+.chat-content small{display:block;opacity:.65;font-size:11px;margin-top:5px}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#a09aad;gap:7px;min-height:170px;text-align:center}.empty .empty-emoji{font-size:42px}.empty strong{color:#746b88}
+.section-box{max-width:850px;margin:auto}.music-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.7fr);gap:20px}
+.music-hero{display:grid;place-items:center;min-height:300px;background:linear-gradient(145deg,#f6f1ff,#fffaef);border-radius:20px}
+.music-hero .disc{width:170px;height:170px;border-radius:50%;display:grid;place-items:center;font-size:74px;background:#fff;box-shadow:0 20px 45px #755bb128}
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:15px}.field label{font-weight:700;font-size:13px;color:#716783}.field input{padding:13px 15px;border:1px solid #e5dfed;border-radius:13px;color:#34284f;background:#fcfbff;min-width:0;width:100%}
+.music-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}.song-name{font-size:18px;font-weight:770;margin:15px 0 4px}.music-status{font-size:13px;color:#a09aaf;word-break:break-word}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.setting-label{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700}.setting-label small{color:#8064d5}input[type=range]{accent-color:#8263de;width:100%;margin:24px 0 8px}
+.mood-grid{display:flex;flex-wrap:wrap;gap:9px}.mood-btn{border:1px solid #e9e1f5;border-radius:12px;background:#fcfaff;padding:10px 12px;color:#796990;font-weight:630;font-size:12px}.mood-btn:hover{border-color:#ab8fea}
+.toast{position:fixed;bottom:25px;right:25px;max-width:360px;padding:12px 17px;border-radius:14px;color:#fff;background:#4b3b70;box-shadow:0 14px 30px #3a24553b;z-index:50;opacity:0;pointer-events:none;transform:translateY(10px);transition:.2s}.toast.show{opacity:1;transform:none}
+.overlay{position:fixed;inset:0;z-index:100;background:#211c38ac;display:grid;place-items:center;padding:20px;backdrop-filter:blur(9px)}.overlay.hidden{display:none}.pair-card{max-width:470px;width:100%;background:white;border-radius:27px;padding:37px;text-align:center;box-shadow:0 35px 90px #1a112f66}.pair-icon{font-size:48px}.pair-card h2{font-size:25px;letter-spacing:-.6px;margin:11px 0 5px}.pair-card p{color:#9189a6;font-size:14px}.pair-code{font:800 clamp(26px,6vw,45px) "Segoe UI",system-ui;letter-spacing:8px;color:#634dc0;background:#f4f0ff;padding:19px 10px;margin:22px 0;border-radius:17px;user-select:all}.pair-foot{font-size:12px;color:#9284a5;margin-top:15px}
+@media(max-width:1100px){.home-grid{grid-template-columns:1fr}.side-stack{display:grid;grid-template-columns:1fr 1fr}.hero{min-height:470px}}
+@media(max-width:800px){.shell{display:block}.sidebar{position:fixed;z-index:20;bottom:0;left:0;right:0;min-height:68px;padding:7px 8px;flex-direction:row;justify-content:space-around;box-shadow:0 -8px 30px #45306d10;border-top:1px solid var(--border);border-right:0}.brand,.sidebar-bottom{display:none}.nav{width:auto;flex:1;max-width:140px;justify-content:center;flex-direction:column;gap:2px;padding:6px 4px;border-radius:12px;font-size:11px}.nav svg{width:19px;height:19px}.page-wrap{padding:20px 16px 100px}.topbar{margin-bottom:20px}.topbar h1{font-size:23px}.topbar p{font-size:12px}.side-stack,.music-layout,.settings-grid{grid-template-columns:1fr}.card{padding:19px}.hero{min-height:455px}.mascot-wrap{height:260px}.mascot-wrap img{max-width:235px;max-height:235px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 </style></head><body>
-<div class="shell"><aside class="sidebar"><div class="brand"><span class="robot">🤖</span>XiaoZhi PC</div>
-<button class="tab active" data-tab="home"><span class="glyph">⌂</span>Trang chính</button>
-<button class="tab" data-tab="music"><span class="glyph">♫</span>Âm nhạc</button>
-<button class="tab" data-tab="device"><span class="glyph">▣</span>Thiết bị</button>
-<button class="tab" data-tab="chat"><span class="glyph">▤</span>Hội thoại</button>
-<button class="tab" data-tab="log"><span class="glyph">☷</span>Nhật ký</button>
-<button class="tab" data-tab="settings"><span class="glyph">⚙</span>Cài đặt</button>
-<div class="bottom"><button class="tab" style="padding:11px 8px;color:#e4b7c0" onclick="exitApp()"><span class="glyph">⏻</span>Thoát ứng dụng</button><span class="green">●</span> XiaoZhi PC<br>Giao diện tiếng Việt</div></aside>
-<main><div class="top"><h1>XiaoZhi PC<small>Trợ lý giọng nói • Giao diện tiếng Việt</small></h1><div class="hint">✦ Kiểm thử thiết bị và công cụ MCP</div></div>
-<div class="grid">
-<section class="card voice" data-section="music"><h2><span class="ico">♫</span> Phát nhạc online</h2>
-<p>Nhạc được tải trực tiếp từ Cloudflare Worker về PC. Lệnh giọng nói sử dụng MCP thiết bị self.music.play_song.</p>
-<div class="controls"><input id="song" class="button" style="flex:2" placeholder="Tên bài hát (ví dụ: Nàng Thơ)" maxlength="160">
-<input id="artist" class="button" style="flex:1" placeholder="Ca sĩ" maxlength="160">
-<button class="button primary" onclick="playMusic()">▶ Phát</button></div>
-<div class="controls"><button class="button" onclick="send('music_pause')">Ⅱ Tạm dừng</button><button class="button" onclick="send('music_resume')">▶ Tiếp tục</button><button class="button danger" onclick="send('music_stop')">■ Dừng</button></div>
-<p>Trạng thái: <strong id="musicState">Chưa phát</strong> <span id="musicTrack"></span></p></section>
-<section class="card connection" data-section="device"><h2><span class="dot"></span> Trạng thái kết nối</h2>
-<div class="pair">Trạng thái <strong id="connection" class="green">Đang khởi động...</strong></div><div class="pair">Thiết bị <strong>XiaoZhi-Go</strong></div><div class="pair">Âm thanh <strong id="audioStatus">Đang chuẩn bị</strong></div><div class="pair">Máy chủ MCP <strong>Kiểm tra trong nhật ký server</strong></div></section>
-<section class="card activation" data-section="device"><h2><span class="ico">⚿</span> Kích hoạt thiết bị</h2><div class="code" id="activation">—— ——</div><p id="activationNote">Nếu chưa liên kết, mã kích hoạt sẽ xuất hiện tại đây. Nếu đã liên kết, không cần nhập lại.</p>
-<button class="button primary full" onclick="openExternal('https://xiaozhi.me')">↗ Mở xiaozhi.me</button></section>
-<section class="card rightSide volume" data-section="settings"><h2><span class="ico">🔊</span> Âm lượng</h2><div class="volumeTop"><small>Âm lượng phát của XiaoZhi</small><strong id="vol">70%</strong></div><input id="volume" type="range" min="0" max="100" value="70" aria-label="Âm lượng" onchange="send('volume',Number(this.value)/100)"><p>Điều chỉnh âm lượng phát giọng nói của XiaoZhi.</p></section>
-<section class="card voice" data-section="home"><h2><span class="ico">✨</span> Qoobee — biểu cảm trợ lý</h2>
-<div class="mascot-panel"><img id="mascotImage" src="/assets/emotions/bom-dia.gif" alt="Biểu cảm Qoobee" onerror="this.style.opacity='.2'">
-<div><div id="mascotState" class="mascot-name">Đang khởi động</div>
-<div class="mascot-description">Tự đổi hoạt ảnh theo trạng thái nghe, nói và cảm xúc do XiaoZhi AI gửi xuống.</div>
-<div class="mascot-preview">
-<button type="button" onclick="previewMascot('happy')">Vui</button>
-<button type="button" onclick="previewMascot('loving')">Yêu</button>
-<button type="button" onclick="previewMascot('sad')">Buồn</button>
-<button type="button" onclick="previewMascot('angry')">Giận</button>
-<button type="button" onclick="previewMascot('neutral')">Mặc định</button>
-</div><div class="mascot-description" id="mascotPreviewTip">Nút xem thử hiển thị trong 5 giây, không gửi lệnh lên AI.</div></div></div></section>
-<section class="card voice" data-section="home"><h2><span class="ico">🎙</span> Điều khiển giọng nói</h2><div class="audio"><div class="mic">🎙</div><div class="wave"><div class="bars" id="bars"></div><small id="voiceText">Sẵn sàng lắng nghe...</small><div style="margin-top:8px;font-size:12px;color:#93b3d2;text-align:center">Tín hiệu micro: <strong id="micLevel">0%</strong> · Đã gửi: <strong id="framesSent">0</strong> khung · Lỗi/bỏ khung: <strong id="framesDropped">0</strong></div><div style="height:5px;background:#27415a;border-radius:9px;margin:8px auto 0;max-width:340px"><div id="micMeter" style="height:100%;width:0%;background:#38baf9;border-radius:9px"></div></div></div></div><div class="controls"><button id="start" class="button primary" onclick="send('start')">🎙 Bắt đầu nói</button><button id="stop" class="button" onclick="send('stop')">■ Dừng nói</button><button class="button danger" onclick="send('abort')">◩ Ngắt phản hồi</button></div><p id="notice"></p></section>
-<section class="card rightSide info" data-section="device"><h2><span class="ico">▣</span> Thông tin thiết bị</h2><div class="pair">Tên thiết bị <strong>XiaoZhi-Go</strong></div><div class="pair">Địa chỉ MAC <strong id="mac">—</strong></div><div class="pair">Phiên làm việc <strong id="session">—</strong></div><div class="pair">Giao thức <strong>WebSocket + Opus</strong></div></section>
-<section class="card conversation" data-section="chat"><h2><span class="ico">☏</span> Hội thoại gần đây</h2><div id="history" class="chats"><p>Hội thoại sẽ xuất hiện khi bạn bắt đầu nói.</p></div></section>
-<section class="card rightSide" data-section="log"><h2><span class="ico">☷</span> Nhật ký kỹ thuật</h2><div id="logs" class="logs">Đang chờ thông tin...</div><p>Thông tin MCP trên Cloudflare/Render cần được xác nhận ở log máy chủ.</p></section>
-</div><div class="footer">Dễ dùng hơn CMD · Điều khiển bằng nút bấm · Dữ liệu được xử lý trong ứng dụng</div></main></div>
+<div class="shell">
+<aside class="sidebar" aria-label="Điều hướng">
+ <div class="brand"><div class="brand-logo">🌟</div><div><strong>Tiểu Trí</strong><small>Người bạn AI của bạn</small></div></div>
+ <button class="nav active" data-page="home"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10h-7v-6h-4v6H3z"/></svg>Trang chủ</button>
+ <button class="nav" data-page="chat"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 1-8 8c-2 0-3-.3-4.5-1L3 20l1.5-4A8 8 0 1 1 20 11Z"/></svg>Trò chuyện</button>
+ <button class="nav" data-page="music"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 5l12-2M9 18a3 2 0 1 1-6 0 3 2 0 0 1 6 0m12-2a3 2 0 1 1-6 0 3 2 0 0 1 6 0"/></svg>Âm nhạc</button>
+ <button class="nav" data-page="settings"><svg viewBox="0 0 24 24"><path d="M12 3v2m0 14v2M3 12h2m14 0h2m-15-6 1.5 1.5m9 9L18 18M18 6l-1.5 1.5m-9 9L6 18"/><circle cx="12" cy="12" r="5"/></svg>Cài đặt</button>
+ <div class="sidebar-bottom">Được tạo để đồng hành mỗi ngày 💜</div>
+</aside>
+<main class="page-wrap">
+ <header class="topbar"><div><h1 id="pageTitle">Xin chào! 👋</h1><p id="pageSubtitle">Tiểu Trí luôn sẵn sàng trò chuyện với bạn.</p></div><div id="status" class="status offline"><i></i><span id="statusText">Đang kết nối</span></div></header>
+ <section class="page active" id="page-home">
+   <div class="home-grid">
+    <div class="card hero">
+      <span class="eyebrow">NGƯỜI BẠN NHỎ CỦA BẠN</span>
+      <div class="mascot-wrap"><div class="mascot-glow"></div><img id="mascotImage" src="/assets/emotions/qoobee.gif" alt="Qoobee"></div>
+      <h2 id="mascotState" aria-live="polite">Chào bạn!</h2><p id="mascotHint" class="subtitle">Hôm nay bạn muốn trò chuyện gì nào?</p>
+      <div class="speech" id="voiceText">Nhấn nút để bắt đầu nói chuyện</div>
+      <div class="micro-controls">
+       <button id="start" class="btn primary" onclick="send('start')">🎙 Bắt đầu trò chuyện</button>
+       <button id="stop" class="btn soft" onclick="send('stop')" disabled>◼ Dừng nghe</button>
+       <button id="abort" class="btn danger" onclick="send('abort')" style="display:none">✕ Ngắt lời</button>
+      </div>
+    </div>
+    <div class="side-stack">
+     <div class="card"><div class="panel-title"><h3>🎤 Tôi đang nghe đây</h3></div><div id="micVisual" class="mic-visual" aria-hidden="true"></div><p id="micHint" class="note">Nhấn “Bắt đầu trò chuyện” rồi nói thật tự nhiên nhé.</p></div>
+     <div class="card"><div class="panel-title"><h3>💬 Vừa trò chuyện</h3><button class="quiet-link" onclick="showPage('chat')">Xem tất cả →</button></div><div id="recent" class="recent"><div class="note">Những câu chuyện của chúng ta sẽ xuất hiện ở đây.</div></div></div>
+    </div>
+   </div>
+ </section>
+ <section class="page" id="page-chat"><div class="section-box"><div class="card">
+  <h2 class="page-heading">Cuộc trò chuyện của chúng ta 💬</h2><p class="description">Bạn cứ nói, Tiểu Trí sẽ lắng nghe và trả lời.</p>
+  <div id="history" class="chat-box"><div class="empty"><span class="empty-emoji">💜</span><strong>Chưa có cuộc trò chuyện nào</strong><span>Chạm nút trò chuyện ở trang chủ để bắt đầu nhé!</span></div></div>
+ </div></div></section>
+ <section class="page" id="page-music"><div class="section-box">
+  <h2 class="page-heading">Bật nhạc lên nào 🎶</h2><p class="description">Chọn bài hát yêu thích và tận hưởng âm nhạc cùng Tiểu Trí.</p>
+  <div class="music-layout"><div class="card">
+   <div class="field"><label for="song">Tên bài hát</label><input id="song" placeholder="Ví dụ: Nàng Thơ" maxlength="160" autocomplete="off"></div>
+   <div class="field"><label for="artist">Ca sĩ (không bắt buộc)</label><input id="artist" placeholder="Ví dụ: Hoàng Dũng" maxlength="160" autocomplete="off"></div>
+   <button class="btn primary wide" id="playButton" onclick="playMusic()">▶ Phát nhạc</button>
+   <div class="music-actions"><button class="btn soft" onclick="send('music_pause')">Ⅱ Tạm dừng</button><button class="btn soft" onclick="send('music_resume')">▶ Tiếp tục</button><button class="btn danger" onclick="send('music_stop')">■ Dừng</button></div>
+   <div class="song-name" id="musicTrack">Chưa có bài hát</div><div class="music-status" id="musicState">Chọn bài hát để bắt đầu.</div>
+  </div><div class="music-hero"><div class="disc">🎵</div></div></div>
+ </div></section>
+ <section class="page" id="page-settings"><div class="section-box">
+  <h2 class="page-heading">Cá nhân hóa trải nghiệm ✨</h2><p class="description">Một vài điều nhỏ để Tiểu Trí trở nên thân thuộc hơn.</p>
+  <div class="settings-grid">
+   <div class="card"><div class="panel-title"><h3>🔊 Âm lượng</h3></div><div class="setting-label"><span>Âm lượng loa</span><small id="vol">70%</small></div>
+    <input id="volume" type="range" min="0" max="100" value="70" aria-label="Âm lượng" onchange="send('volume',Number(this.value)/100)">
+    <p class="note">Điều chỉnh để nghe Tiểu Trí rõ ràng và dễ chịu.</p></div>
+   <div class="card"><div class="panel-title"><h3>🥰 Biểu cảm của Tiểu Trí</h3></div><p class="note">Thử xem những biểu cảm đáng yêu của nhân vật nhé!</p>
+    <div class="mood-grid" style="margin-top:16px"><button class="mood-btn" onclick="previewMascot('happy')">😄 Vui</button><button class="mood-btn" onclick="previewMascot('loving')">😍 Yêu</button><button class="mood-btn" onclick="previewMascot('sad')">😢 Buồn</button><button class="mood-btn" onclick="previewMascot('angry')">😤 Giận</button><button class="mood-btn" onclick="previewMascot('idle')">🙂 Bình thường</button></div>
+   </div>
+   <div class="card"><div class="panel-title"><h3>💜 Về Tiểu Trí</h3></div><p class="note">Một người bạn nhỏ để trò chuyện, học hỏi và nghe nhạc mỗi ngày.</p><p class="note" style="margin-top:12px">Phiên bản 1.2.0</p></div>
+   <div class="card"><div class="panel-title"><h3>👋 Hẹn gặp lại</h3></div><p class="note" style="margin-bottom:17px">Tiểu Trí sẽ luôn chờ bạn trở lại.</p><button class="btn soft" onclick="exitApp()">Thoát ứng dụng</button></div>
+  </div>
+ </div></section>
+</main></div>
+<div id="activationOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="activationTitle">
+ <div class="pair-card"><div class="pair-icon">💜</div><h2 id="activationTitle">Kết nối với Tiểu Trí</h2>
+ <p>Chỉ cần thực hiện một lần để chúng ta bắt đầu trò chuyện nhé.</p>
+ <div id="activationCode" class="pair-code" aria-label="Mã liên kết">—— ——</div>
+ <p>Mở <strong>xiaozhi.me</strong>, thêm thiết bị mới và nhập mã phía trên.</p>
+ <button class="btn primary wide" onclick="openExternal('https://xiaozhi.me')">Mở trang kết nối ↗</button>
+ <div class="pair-foot">Sau khi xác thực thành công, màn hình này sẽ tự đóng.</div></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
-const token="{{LOCAL_TOKEN}}", $=id=>document.getElementById(id);
-const stateNames={starting:"Đang khởi động",activating:"Chờ kích hoạt",connecting:"Đang kết nối",ready:"Đã kết nối",error:"Có lỗi",idle:"Sẵn sàng",listening:"Đang nghe",speaking:"Đang trả lời"};
-const bars=$("bars");for(let i=0;i<44;i++){let b=document.createElement("i");b.style.setProperty("--h",(6+Math.round(42*Math.abs(Math.sin(i*.91)*Math.cos(i*.37))))+"px");bars.append(b)}
-function openExternal(url){window.open(url,"_blank","noopener,noreferrer")}
-async function exitApp(){if(window.confirm("Thoát XiaoZhi PC và ngắt kết nối thiết bị?"))await send("quit")}
-async function playMusic(){
-try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action:"music_play",song:$("song").value,artist:$("artist").value})});const data=await r.json();$("notice").textContent=r.ok?"Đã gửi yêu cầu phát nhạc":data.error||"Không tìm được nhạc"}
-catch(e){$("notice").textContent=e.message}
+"use strict";
+const token="{{LOCAL_TOKEN}}",$=id=>document.getElementById(id);
+const mascotMap={idle:"qoobee.gif",listening:"qoo-bee-qoo-bee-agapi.gif",speaking:"bom-dia.gif",thinking:"qoo-bee-qoo-bee-agapi.gif",happy:"bom-dia.gif",laughing:"bom-dia.gif",funny:"bom-dia.gif",loving:"cute-dragon-love-you.gif",sad:"qoobee-cry.gif",crying:"qoobee-cry.gif",angry:"qoobee-upset.gif",confused:"qoo-bee-qoo-bee-agapi.gif",surprised:"bom-dia.gif",shocked:"qoobee-upset.gif",embarrassed:"qoo-bee-qoo-bee-agapi.gif",relaxed:"qoobee.gif",sleepy:"qoobee.gif",winking:"qoobee.gif",confident:"bom-dia.gif",silly:"bom-dia.gif"};
+const moodLabels={idle:["Chào bạn!","Hôm nay bạn muốn trò chuyện gì nào?"],listening:["Tôi đang lắng nghe","Cứ kể cho tôi nghe nhé!"],speaking:["Để tôi kể bạn nghe","Tiểu Trí đang trả lời nè!"],thinking:["Chờ tôi một chút nhé","Tôi đang suy nghĩ..."],happy:["Vui quá đi!","Thật tuyệt khi được trò chuyện cùng bạn."],loving:["Thương bạn nhiều!","Một cái ôm thật to từ Tiểu Trí."],sad:["Hơi buồn một chút","Tôi vẫn đang lắng nghe bạn."],crying:["Hu hu...","Chúng mình sẽ ổn thôi."],angry:["Hơi bực một chút","Để tôi bình tĩnh lại nhé."]};
+const titles={home:["Xin chào! 👋","Tiểu Trí luôn sẵn sàng trò chuyện với bạn."],chat:["Chuyện trò một chút 💬","Những cuộc hội thoại dễ thương của chúng ta."],music:["Góc âm nhạc 🎶","Mở bài hát bạn yêu thích nào."],settings:["Cài đặt ✨","Điều chỉnh Tiểu Trí theo sở thích của bạn."]};
+let currentPage="home",activeFile="",previewUntil=0,previewKind="idle",eventSignature="",toastTimer=null,lastState="idle";
+function showPage(page){if(!titles[page])return;currentPage=page;document.querySelectorAll("[data-page]").forEach(el=>el.classList.toggle("active",el.dataset.page===page));document.querySelectorAll(".page").forEach(el=>el.classList.toggle("active",el.id==="page-"+page));$("pageTitle").textContent=titles[page][0];$("pageSubtitle").textContent=titles[page][1]}
+document.querySelectorAll("[data-page]").forEach(btn=>btn.addEventListener("click",()=>showPage(btn.dataset.page)));
+function openExternal(link){window.open(link,"_blank","noopener,noreferrer")}
+function notify(message){let box=$("toast");box.textContent=message;box.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>box.classList.remove("show"),4200)}
+async function send(action,value){try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action,value})});const data=await r.json();if(!r.ok){notify(data.error||"Chưa thể thực hiện, thử lại nhé.");return}if(action==="music_pause"||action==="music_resume"||action==="music_stop")notify(({music_pause:"Đã tạm dừng",music_resume:"Đang tiếp tục phát nhạc",music_stop:"Đã dừng nhạc"})[action])}catch(e){notify("Không kết nối được với ứng dụng.")}}
+async function playMusic(){const song=$("song").value.trim(),artist=$("artist").value.trim();if(!song){notify("Bạn hãy nhập tên bài hát nhé!");$("song").focus();return}let b=$("playButton");b.disabled=true;b.textContent="Đang tìm bài hát...";
+try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action:"music_play",song,artist})});const data=await r.json();notify(r.ok?"Đang chuẩn bị bài hát cho bạn 🎵":(data.error||"Không tìm thấy bài hát."))}catch(e){notify("Chưa thể phát bài hát lúc này.")}finally{b.disabled=false;b.textContent="▶ Phát nhạc"}}
+function previewMascot(kind){previewKind=kind;previewUntil=Date.now()+4500;showPage("home");showMascot(kind)}
+function showMascot(kind){const file=mascotMap[kind]||mascotMap.idle;if(activeFile!==file){activeFile=file;$("mascotImage").src="/assets/emotions/"+file}const label=moodLabels[kind]||moodLabels.idle;$("mascotState").textContent=label[0];$("mascotHint").textContent=label[1]}
+function createText(tag,value,cls){const el=document.createElement(tag);el.textContent=value;if(cls)el.className=cls;return el}
+function updateHistory(events){const valid=events.filter(e=>e.kind==="stt"||e.kind==="tts"||e.kind==="llm");const recent=valid.slice(-4);const box=$("recent");box.replaceChildren();if(!recent.length)box.append(createText("p","Những câu chuyện của chúng ta sẽ xuất hiện ở đây.","note"));else for(const e of recent){let item=createText("div",e.text,"recent-item"+(e.kind==="stt"?" me":""));item.prepend(createText("small",e.kind==="stt"?"Bạn":"Tiểu Trí"));box.append(item)}
+const target=$("history");target.replaceChildren();if(!valid.length){let e=createText("div","","empty");e.append(createText("span","💜","empty-emoji"),createText("strong","Chưa có cuộc trò chuyện nào"),createText("span","Nhấn trò chuyện ở trang chủ để bắt đầu nhé!"));target.append(e);return}
+for(const e of valid){let row=createText("div","","chat-message"+(e.kind==="stt"?" me":""));if(e.kind!=="stt")row.append(createText("span","🌟","chat-icon"));const bubble=createText("div",e.text,"chat-content");bubble.append(createText("small",e.time));row.append(bubble);target.append(row)}target.scrollTop=target.scrollHeight}
+function statusLabel(s){if(s.phase==="error")return"Đang gặp sự cố";if(s.phase==="connecting"||s.phase==="activating"||s.phase==="starting")return"Đang kết nối";return s.phase==="ready"?"Đã kết nối":"Đang kết nối"}
+function updateUI(s){
+ const status=statusLabel(s),isReady=s.phase==="ready";$("statusText").textContent=status;$("status").classList.toggle("offline",!isReady);
+ const hasCode=typeof s.activation==="string"&&s.activation.trim().length>0;
+ $("activationOverlay").classList.toggle("hidden",!hasCode);
+ if(hasCode)$("activationCode").textContent=s.activation;
+ const state=s.state||"idle",recording=state==="listening",speaking=state==="speaking";
+ $("start").disabled=!isReady||recording||speaking;$("stop").disabled=!recording;
+ $("abort").style.display=speaking?"inline-flex":"none";
+ const emotion=(s.emotion||"neutral").toLowerCase();
+ let mood=recording?"listening":speaking?(emotion!=="neutral"&&mascotMap[emotion]?emotion:"speaking"):((s.music||{}).state==="playing"?"happy":"idle");
+ if(!isReady)mood="thinking";
+ if(Date.now()<previewUntil)mood=previewKind;
+ showMascot(mood);
+ $("voiceText").textContent=recording?"Tôi đang nghe bạn nói...":speaking?"Tiểu Trí đang trả lời...":isReady?"Nhấn nút để bắt đầu nói chuyện":"Đợi Tiểu Trí kết nối nhé...";
+ $("micHint").textContent=recording?"Bạn cứ nói bình thường, tôi đang chú ý đây.":"Bấm nút trò chuyện để cùng tâm sự nhé.";
+ $("micVisual").classList.toggle("live",recording);
+ const song=(s.music||{});$("musicTrack").textContent=song.title||"Chưa có bài hát";
+ const nameMap={stopped:"Chọn bài hát để bắt đầu.",buffering:"Đang chuẩn bị âm nhạc...",playing:"Đang phát",paused:"Đã tạm dừng",finished:"Đã phát xong",error:"Không phát được bài hát"};
+ $("musicState").textContent=(nameMap[song.state]||"Sẵn sàng")+(song.artist?" · "+song.artist:"")+(song.error?" — "+song.error:"");
+ const pct=Math.round((s.volume??.7)*100);$("vol").textContent=pct+"%";if(document.activeElement!==$("volume"))$("volume").value=pct;
+ const signature=JSON.stringify((s.events||[]).filter(e=>["stt","tts","llm"].includes(e.kind)));if(eventSignature!==signature){eventSignature=signature;updateHistory(s.events||[])}
+ if(s.error&&s.phase==="error"&&lastState!=="error")notify("Tiểu Trí chưa kết nối được. Bạn thử mở lại sau nhé.");
+ lastState=s.phase;
 }
-async function send(action,value){try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action,value})});const data=await r.json();$("notice").textContent=r.ok?"":(data.error||"Không thực hiện được")}catch(e){$("notice").textContent="Lỗi: "+e.message}}
-const mascotMap={
- idle:"bom-dia.gif", listening:"qoo-bee-qoo-bee-agapi.gif",
- speaking:"qoobee.gif", thinking:"qoo-bee-qoo-bee-agapi.gif",
- happy:"qoobee.gif", laughing:"qoobee.gif", funny:"qoobee.gif",
- loving:"cute-dragon-love-you.gif", sad:"qoobee-cry.gif", crying:"qoobee-cry.gif",
- angry:"qoobee-upset.gif", confused:"qoo-bee-qoo-bee-agapi.gif",
- surprised:"qoobee.gif", shocked:"qoobee-upset.gif",
- embarrassed:"qoo-bee-qoo-bee-agapi.gif", relaxed:"bom-dia.gif", sleepy:"bom-dia.gif",
- winking:"bom-dia.gif", confident:"qoobee.gif", silly:"qoobee.gif"
-};
-let mascotOverride="",mascotPreviewUntil=0,currentMascot="";
-function previewMascot(kind){mascotOverride=kind;mascotPreviewUntil=Date.now()+5000;showMascot(kind,true)}
-function showMascot(kind,preview=false){
- const filename=mascotMap[kind]||mascotMap.idle;
- const image=$("mascotImage");
- if(currentMascot!==filename){currentMascot=filename;image.style.opacity="1";image.src="/assets/emotions/"+filename}
- $("mascotState").textContent=(preview?"Xem thử: ":"")+({listening:"Đang lắng nghe",speaking:"Đang trả lời",thinking:"Đang suy nghĩ",idle:"Đang chờ",happy:"Vui vẻ",loving:"Yêu thương",sad:"Buồn",crying:"Khóc",angry:"Giận",confused:"Bối rối"}[kind]||kind);
-}
-let previous="";
-async function refresh(){try{const r=await fetch("/api/status");if(!r.ok)throw Error("HTTP "+r.status);let s=await r.json();
-let mood=s.state==="listening"?"listening":s.state==="speaking"?(s.emotion&&s.emotion!=="neutral"?s.emotion:"speaking"):
-(s.music&&s.music.state==="playing"?"happy":s.emotion&&s.emotion!=="neutral"?s.emotion:"idle");
-if(s.phase==="connecting"||s.phase==="activating"||s.phase==="error")mood="thinking";
-if(Date.now()<mascotPreviewUntil)showMascot(mascotOverride,true);else showMascot(mood);
-$("musicState").textContent=(s.music||{}).state||"stopped";$("musicTrack").textContent=[(s.music||{}).title,(s.music||{}).artist,(s.music||{}).error].filter(Boolean).join(" — ");$("connection").textContent=stateNames[s.phase]||s.phase;$("audioStatus").textContent=s.state==="listening"?"Đang thu âm":s.state==="speaking"?"Đang phát âm":"Sẵn sàng";
-$("voiceText").textContent=s.state==="listening"?"Đang nghe bạn nói...":s.state==="speaking"?"Trợ lý đang trả lời...":(s.phase==="ready"?"Sẵn sàng lắng nghe...":"Đợi kết nối máy chủ...");
-$("activation").textContent=s.activation||"—— ——";$("activationNote").textContent=s.activation?"Nhập mã này trên xiaozhi.me để liên kết thiết bị.":"Đã có tài khoản? Thiết bị sẽ tự liên kết lại nếu còn cấu hình cũ.";
-$("mac").textContent=s.mac||"—";$("session").textContent=s.session_id||"—";$("micLevel").textContent=(s.mic_level||0)+"%";$("micMeter").style.width=(s.mic_level||0)+"%";$("framesSent").textContent=s.mic_frames_sent||0;$("framesDropped").textContent=s.mic_frames_dropped||0;$("start").disabled=s.phase!=="ready"||s.recording;$("stop").disabled=s.phase!=="ready"||!s.recording;
-if(s.error)$("notice").textContent=s.error;const pct=Math.round((s.volume||0)*100);if(document.activeElement!==$("volume"))$("volume").value=pct;$("vol").textContent=pct+"%";
-let events=s.events||[];let signature=JSON.stringify(events);if(previous!==signature){previous=signature;const history=$("history");history.replaceChildren();if(!events.length)history.textContent="Chưa có hội thoại. Bấm Bắt đầu nói để thử trợ lý.";
-for(const e of events){let v=document.createElement("div");v.className="chat "+e.kind;let label=document.createElement("small");label.textContent=({stt:"Bạn",llm:"XiaoZhi",tts:"XiaoZhi phát âm",system:"Hệ thống"}[e.kind]||"Hệ thống")+" • "+e.time;v.appendChild(label);let body=document.createElement("span");body.textContent=e.text;v.appendChild(body);history.append(v)}history.scrollTop=history.scrollHeight}
-$("logs").textContent=(s.logs||[]).slice(-32).join("\n")||"Chưa có nhật ký."}
-catch(e){$("connection").textContent="Mất kết nối giao diện";$("notice").textContent=e.message}}
-document.querySelectorAll(".tab").forEach(el=>el.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));el.classList.add("active");const tab=el.dataset.tab;document.querySelectorAll("[data-section]").forEach(card=>{card.classList.toggle("hidden",tab!=="home"&&card.dataset.section!==tab)});}));
-refresh();setInterval(refresh,1000);
+async function refresh(){try{const r=await fetch("/api/status",{cache:"no-store"});if(!r.ok)throw Error("Offline");updateUI(await r.json())}catch(e){$("statusText").textContent="Đang kết nối";$("status").classList.add("offline");$("start").disabled=true;$("stop").disabled=true}}
+function setup(){const bars=$("micVisual");for(let i=0;i<25;i++){const b=document.createElement("span");b.style.setProperty("--i",String(i));b.style.setProperty("--h",String(10+Math.round(33*Math.abs(Math.sin(i*.8)*Math.cos(i*.36)))));bars.append(b)}$("song").addEventListener("keydown",e=>{if(e.key==="Enter")playMusic()});$("artist").addEventListener("keydown",e=>{if(e.key==="Enter")playMusic()});refresh();setInterval(refresh,1000)}
+async function exitApp(){if(window.confirm("Bạn muốn tạm biệt Tiểu Trí và thoát ứng dụng?"))await send("quit")}
+setup();
 </script></body></html>

@@ -17,7 +17,6 @@ import (
  "time"
 )
 
-const appVersion = "1.3.0"
 const releaseAPI = "https://api.github.com/repos/thanhnha01/xiaozhi-go/releases/latest"
 const setupFilename = "XiaoZhi-PC-Setup-v1.3.0.exe"
 

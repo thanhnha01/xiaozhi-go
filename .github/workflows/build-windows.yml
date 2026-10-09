@@ -113,4 +113,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v1.2.0 "XiaoZhi-PC-v1.2.0-Windows-x64.zip" --title "XiaoZhi PC v1.2.0 - Qoobee Edition" --notes "XiaoZhi PC v1.2.0 with redesigned consumer UI, six embedded Qoobee GIFs, first-time-only activation code, existing voice and music features. Keep device_config.json to preserve pairing." --target "${{ github.sha }}"
+          gh release create v1.3.0 "output/XiaoZhi-PC-Setup-v1.3.0.exe" "output/XiaoZhi-PC-Setup-v1.3.0.exe.sha256" "XiaoZhi-PC-v1.3.0-Windows-x64.zip" --title "XiaoZhi PC v1.3.0 - Installer and Auto Updates" --notes "Windows installer with branded icon, shortcuts, Installed Apps entry, update confirmation, SHA256 verification, persistent device pairing and full uninstall." --target "${{ github.sha }}"

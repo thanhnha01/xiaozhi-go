@@ -11,6 +11,20 @@ import (
     webview2 "github.com/jchv/go-webview2"
 )
 
+// go-winres simply embeds the RT_GROUP_ICON at numeric resource ID #1.
+// go-webview2 defaults to the generic Windows icon when IconId is zero.
+// Give both the title bar and taskbar the branded XiaoZhi icon.
+const xiaoZhiWindowsIconResourceID uint = 1
+
+func xiaoZhiWindowOptions() webview2.WindowOptions {
+    return webview2.WindowOptions{
+        Title: "Tiểu Trí - XiaoZhi PC",
+        Width: 1480, Height: 930,
+        IconId: xiaoZhiWindowsIconResourceID,
+        Center: true,
+    }
+}
+
 // Native Win32 window with Microsoft's Edge WebView2. The localhost backend is
 // embedded in this process; no command prompt or external browser is required.
 func openDesktopWindow(d *Dashboard) error {
@@ -26,11 +40,7 @@ func openDesktopWindow(d *Dashboard) error {
             Debug: false,
             AutoFocus: true,
             DataPath: profilePath,
-            WindowOptions: webview2.WindowOptions{
-                Title: "XiaoZhi PC - Trợ lý giọng nói",
-                Width: 1480, Height: 930,
-                Center: true,
-            },
+            WindowOptions: xiaoZhiWindowOptions(),
         })
         if w == nil {
             ready <- fmt.Errorf("không thể mở WebView2; vui lòng cài Microsoft Edge WebView2 Runtime")

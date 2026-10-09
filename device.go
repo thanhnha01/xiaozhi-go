@@ -16,7 +16,7 @@ import (
 // appName / appVersion 用于 OTA 请求中的 application 信息与 User-Agent。
 const (
 	appName    = "xiaozhi-go"
-	appVersion = "1.3.0"
+	appVersion = "1.3.1"
 )
 
 // GenerateMacAddress 生成真实随机的 MAC 地址（6 字节）。

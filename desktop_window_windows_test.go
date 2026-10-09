@@ -17,3 +17,9 @@ func TestWebViewProfileOutsidePortableDirectory(t *testing.T){
  }
  if fi,err:=os.Stat(p);err!=nil||!fi.IsDir(){t.Fatalf("profile not writable directory: %v",err)}
 }
+
+func TestWebViewWindowHasBrandedIcon(t *testing.T) {
+ opts := xiaoZhiWindowOptions()
+ if opts.IconId != 1 { t.Fatalf("window icon resource ID = %d; want 1",opts.IconId) }
+ if opts.Title == "" { t.Fatal("missing window title") }
+}

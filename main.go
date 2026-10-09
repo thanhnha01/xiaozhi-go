@@ -65,7 +65,13 @@ func main() {
 	flag.StringVar(&musicURL, "music-url", "https://xiaozhi-master.nguyennha-020201.workers.dev", "HTTPS music Worker base URL")
  flag.BoolVar(&consoleOnly, "console", false, "Chạy giao diện dòng lệnh cũ")
 	flag.Parse()
-	configPath = resolveConfigPath(cfgPath)
+	if !consoleOnly {
+        release, alreadyRunning, err := claimGUIInstance()
+        if err != nil { log.Fatalf("Không thể kiểm tra phiên ứng dụng: %v", err) }
+        if alreadyRunning { return }
+        defer release()
+    }
+    configPath = resolveConfigPath(cfgPath)
 
 	// ---------- 1. 加载/生成本设备身份（MAC + UUID） ----------
 	cfg, err := loadConfig()

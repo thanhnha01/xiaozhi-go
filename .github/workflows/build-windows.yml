@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows-x64:
@@ -63,6 +63,9 @@ jobs:
           cp /ucrt64/bin/libstdc++-6.dll dist/ 2>/dev/null || true
           ls -lah dist/
           ldd dist/XiaoZhi-PC.exe || true
+      - name: Package portable release
+        shell: pwsh
+        run: Compress-Archive -Path dist/* -DestinationPath XiaoZhi-PC-v1.1.0-Windows-x64.zip -Force
       - name: Upload portable Windows app
         uses: actions/upload-artifact@v4
         with:
@@ -70,3 +73,11 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish v1.1.0 release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'release: XiaoZhi PC v1.1.0')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v1.1.0 "XiaoZhi-PC-v1.1.0-Windows-x64.zip" --title "XiaoZhi PC v1.1.0 - Music Playback" --notes "Windows x64 portable app: device-side MCP self.music.play_song/pause/resume/stop/get_status, direct HTTP MP3 streaming from Cloudflare Worker, and a Vietnamese Music tab. Keep your existing device_config.json to preserve activation." --target "${{ github.sha }}"

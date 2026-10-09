@@ -47,6 +47,7 @@ h1{font-size:32px;letter-spacing:-.8px;margin:0;font-weight:750}h1 small{display
 </style></head><body>
 <div class="shell"><aside class="sidebar"><div class="brand"><span class="robot">🤖</span>XiaoZhi PC</div>
 <button class="tab active" data-tab="home"><span class="glyph">⌂</span>Trang chính</button>
+<button class="tab" data-tab="music"><span class="glyph">♫</span>Âm nhạc</button>
 <button class="tab" data-tab="device"><span class="glyph">▣</span>Thiết bị</button>
 <button class="tab" data-tab="chat"><span class="glyph">▤</span>Hội thoại</button>
 <button class="tab" data-tab="log"><span class="glyph">☷</span>Nhật ký</button>
@@ -54,6 +55,13 @@ h1{font-size:32px;letter-spacing:-.8px;margin:0;font-weight:750}h1 small{display
 <div class="bottom"><button class="tab" style="padding:11px 8px;color:#e4b7c0" onclick="exitApp()"><span class="glyph">⏻</span>Thoát ứng dụng</button><span class="green">●</span> XiaoZhi PC<br>Giao diện tiếng Việt</div></aside>
 <main><div class="top"><h1>XiaoZhi PC<small>Trợ lý giọng nói • Giao diện tiếng Việt</small></h1><div class="hint">✦ Kiểm thử thiết bị và công cụ MCP</div></div>
 <div class="grid">
+<section class="card voice" data-section="music"><h2><span class="ico">♫</span> Phát nhạc online</h2>
+<p>Nhạc được tải trực tiếp từ Cloudflare Worker về PC. Lệnh giọng nói sử dụng MCP thiết bị self.music.play_song.</p>
+<div class="controls"><input id="song" class="button" style="flex:2" placeholder="Tên bài hát (ví dụ: Nàng Thơ)" maxlength="160">
+<input id="artist" class="button" style="flex:1" placeholder="Ca sĩ" maxlength="160">
+<button class="button primary" onclick="playMusic()">▶ Phát</button></div>
+<div class="controls"><button class="button" onclick="send('music_pause')">Ⅱ Tạm dừng</button><button class="button" onclick="send('music_resume')">▶ Tiếp tục</button><button class="button danger" onclick="send('music_stop')">■ Dừng</button></div>
+<p>Trạng thái: <strong id="musicState">Chưa phát</strong> <span id="musicTrack"></span></p></section>
 <section class="card connection" data-section="device"><h2><span class="dot"></span> Trạng thái kết nối</h2>
 <div class="pair">Trạng thái <strong id="connection" class="green">Đang khởi động...</strong></div><div class="pair">Thiết bị <strong>XiaoZhi-Go</strong></div><div class="pair">Âm thanh <strong id="audioStatus">Đang chuẩn bị</strong></div><div class="pair">Máy chủ MCP <strong>Kiểm tra trong nhật ký server</strong></div></section>
 <section class="card activation" data-section="device"><h2><span class="ico">⚿</span> Kích hoạt thiết bị</h2><div class="code" id="activation">—— ——</div><p id="activationNote">Nếu chưa liên kết, mã kích hoạt sẽ xuất hiện tại đây. Nếu đã liên kết, không cần nhập lại.</p>
@@ -70,9 +78,13 @@ const stateNames={starting:"Đang khởi động",activating:"Chờ kích hoạt
 const bars=$("bars");for(let i=0;i<44;i++){let b=document.createElement("i");b.style.setProperty("--h",(6+Math.round(42*Math.abs(Math.sin(i*.91)*Math.cos(i*.37))))+"px");bars.append(b)}
 function openExternal(url){window.open(url,"_blank","noopener,noreferrer")}
 async function exitApp(){if(window.confirm("Thoát XiaoZhi PC và ngắt kết nối thiết bị?"))await send("quit")}
+async function playMusic(){
+try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action:"music_play",song:$("song").value,artist:$("artist").value})});const data=await r.json();$("notice").textContent=r.ok?"Đã gửi yêu cầu phát nhạc":data.error||"Không tìm được nhạc"}
+catch(e){$("notice").textContent=e.message}
+}
 async function send(action,value){try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action,value})});const data=await r.json();$("notice").textContent=r.ok?"":(data.error||"Không thực hiện được")}catch(e){$("notice").textContent="Lỗi: "+e.message}}
 let previous="";
-async function refresh(){try{const r=await fetch("/api/status");if(!r.ok)throw Error("HTTP "+r.status);let s=await r.json();$("connection").textContent=stateNames[s.phase]||s.phase;$("audioStatus").textContent=s.state==="listening"?"Đang thu âm":s.state==="speaking"?"Đang phát âm":"Sẵn sàng";
+async function refresh(){try{const r=await fetch("/api/status");if(!r.ok)throw Error("HTTP "+r.status);let s=await r.json();$("musicState").textContent=(s.music||{}).state||"stopped";$("musicTrack").textContent=[(s.music||{}).title,(s.music||{}).artist,(s.music||{}).error].filter(Boolean).join(" — ");$("connection").textContent=stateNames[s.phase]||s.phase;$("audioStatus").textContent=s.state==="listening"?"Đang thu âm":s.state==="speaking"?"Đang phát âm":"Sẵn sàng";
 $("voiceText").textContent=s.state==="listening"?"Đang nghe bạn nói...":s.state==="speaking"?"Trợ lý đang trả lời...":(s.phase==="ready"?"Sẵn sàng lắng nghe...":"Đợi kết nối máy chủ...");
 $("activation").textContent=s.activation||"—— ——";$("activationNote").textContent=s.activation?"Nhập mã này trên xiaozhi.me để liên kết thiết bị.":"Đã có tài khoản? Thiết bị sẽ tự liên kết lại nếu còn cấu hình cũ.";
 $("mac").textContent=s.mac||"—";$("session").textContent=s.session_id||"—";$("micLevel").textContent=(s.mic_level||0)+"%";$("micMeter").style.width=(s.mic_level||0)+"%";$("framesSent").textContent=s.mic_frames_sent||0;$("framesDropped").textContent=s.mic_frames_dropped||0;$("start").disabled=s.phase!=="ready"||s.recording;$("stop").disabled=s.phase!=="ready"||!s.recording;

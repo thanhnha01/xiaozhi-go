@@ -119,3 +119,36 @@ go test ./...
 ## 许可证
 
 MIT
+
+## Bộ GIF biểu cảm Qoobee (XiaoZhi PC)
+
+Bản cập nhật tích hợp giao diện nhân vật Qoobee trên tab **Trang chính**, tự đổi biểu cảm theo trạng thái và tin nhắn `llm.emotion` của server.
+
+**Cài bộ GIF:** giải nén tệp `XiaoZhi-Qoobee-Emotions.zip` đi kèm bản cập nhật vào **cùng thư mục chứa `XiaoZhi-PC.exe`** sao cho tồn tại:
+
+```text
+XiaoZhi-PC.exe
+device_config.json         (giữ nguyên file cũ)
+mascot/
+  bom-dia.gif
+  cute-dragon-love-you.gif
+  qoobee.gif
+  qoobee-cry.gif
+  qoo-bee-qoo-bee-agapi.gif
+  qoobee-upset.gif
+```
+
+Có thể đặt một thư mục riêng qua biến môi trường `XIAOZHI_MASCOT_DIR` trước khi khởi động. Nếu GIF chưa được cài, các chức năng thoại và âm nhạc vẫn hoạt động nhưng nhân vật không hiển thị.
+
+Ánh xạ:
+- `idle` → `bom-dia.gif` (ảnh tĩnh trong tệp GIF gốc)
+- `listening` → `qoo-bee-qoo-bee-agapi.gif`
+- `speaking`, `happy`, `funny` → `qoobee.gif`
+- `loving` → `cute-dragon-love-you.gif`
+- `sad`, `crying` → `qoobee-cry.gif` (ảnh tĩnh trong tệp GIF gốc)
+- `angry`, `shocked` → `qoobee-upset.gif`
+- `thinking`, `confused` → `qoo-bee-qoo-bee-agapi.gif`
+
+Khi đang nghe, nhân vật ưu tiên trạng thái `listening`. Khi AI trả lời, biểu cảm `llm.emotion` sẽ thay thế GIF nói mặc định nếu có; sau kết thúc TTS sẽ về trạng thái chờ. Nút xem thử chỉ thay đổi giao diện trong 5 giây, không gửi lệnh tới AI. Hiệu ứng hoạt ảnh của các file phụ thuộc số khung hình có sẵn; mã không tự tạo thêm khung hình.
+
+**Lưu ý quyền sử dụng:** các GIF do người dùng cung cấp, không bao gồm trong mã nguồn repository hoặc gói Release EXE. Hãy bảo đảm bạn có quyền sử dụng và phân phối chúng.

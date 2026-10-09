@@ -297,7 +297,7 @@ func (app *App) handleMessage(msg *Message) {
 		if app.dashboard != nil {app.dashboard.event("stt",msg.Text)}
 	case "llm":
 		log.Printf("LLM: 情感=%s 文本=%s", msg.Emotion, msg.Text)
-		if app.dashboard != nil {app.dashboard.event("llm",msg.Text)}
+		if app.dashboard != nil {app.dashboard.setEmotion(msg.Emotion);app.dashboard.event("llm",msg.Text)}
 	case "mcp":
 		app.handleMcp(msg.Payload)
 	case "system":

@@ -32,6 +32,7 @@ type Dashboard struct {
  listener net.Listener
  server *http.Server
  url, nonce, phase, errorMessage, activation string
+ emotion, mascotDir string
  windowClose func()
  events []dashboardEvent
  logs []string
@@ -39,7 +40,7 @@ type Dashboard struct {
 func newDashboard(app *App) (*Dashboard,error) {
  secret:=make([]byte,24)
  if _,err:=rand.Read(secret);err!=nil{return nil,err}
- return &Dashboard{app:app,nonce:hex.EncodeToString(secret),phase:"starting",events:[]dashboardEvent{},logs:[]string{}},nil
+ return &Dashboard{app:app,nonce:hex.EncodeToString(secret),phase:"starting",emotion:"neutral",mascotDir:mascotAssetDir(),events:[]dashboardEvent{},logs:[]string{}},nil
 }
 func (d *Dashboard) start() error {
  ln,err:=net.Listen("tcp","127.0.0.1:0")
@@ -105,6 +106,7 @@ func (d *Dashboard) Write(p []byte)(int,error){
 }
 func (d *Dashboard) handler() http.Handler{
  mux:=http.NewServeMux()
+ mux.HandleFunc("/assets/emotions/",d.serveMascot)
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request){
   if r.URL.Path!="/"||r.Method!=http.MethodGet{http.NotFound(w,r);return}
   body,err:=dashboardAssets.ReadFile("web/dashboard.html")
@@ -115,7 +117,7 @@ func (d *Dashboard) handler() http.Handler{
  mux.HandleFunc("/api/status",func(w http.ResponseWriter,r *http.Request){
   if r.Method!=http.MethodGet{http.Error(w,"Sai phương thức",405);return}
   d.mu.RLock()
-  phase,failure,activation:=d.phase,d.errorMessage,d.activation
+  phase,failure,activation,emotion:=d.phase,d.errorMessage,d.activation,d.emotion
   events:=append([]dashboardEvent{},d.events...)
   logs:=append([]string{},d.logs...)
   d.mu.RUnlock()
@@ -128,7 +130,7 @@ func (d *Dashboard) handler() http.Handler{
   }
   w.Header().Set("Content-Type","application/json; charset=utf-8")
   _=json.NewEncoder(w).Encode(map[string]any{
-   "phase":phase,"state":state,"recording":state=="listening","activation":activation,
+   "phase":phase,"state":state,"emotion":emotion,"recording":state=="listening","activation":activation,
    "error":failure,"mac":d.app.cfg.MacAddress,"volume":volume,"events":events,"logs":logs,
    "mic_level":micLevel,"music":func()MusicStatus{if d.app.music!=nil{return d.app.music.Status()};return MusicStatus{State:"stopped"}}(),"mic_frames_sent":d.app.micFramesSent.Load(),
    "mic_frames_dropped":d.app.micFramesDropped.Load(),

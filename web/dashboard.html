@@ -44,6 +44,14 @@ h1{font-size:32px;letter-spacing:-.8px;margin:0;font-weight:750}h1 small{display
 .section-only{display:none}.hidden{display:none!important}
 @media(max-width:1200px){.grid{grid-template-columns:1fr 1fr}.rightSide{grid-column:span 1}.voice,.conversation{grid-column:span 2}}
 @media(max-width:760px){.shell{grid-template-columns:1fr}.sidebar{flex-direction:row;overflow-x:auto;padding:8px}.brand,.bottom{display:none}.tab{white-space:nowrap;font-size:12px}.tab .glyph{display:none}main{padding:16px}.grid{grid-template-columns:1fr}.card,.voice,.conversation,.rightSide{grid-column:auto}.top{display:block}.hint{display:none}}
+.mascot-panel{display:flex;align-items:center;gap:22px;min-height:170px;padding:13px 18px;border:1px solid #375269;border-radius:15px;background:radial-gradient(circle at 30% 25%,#243b4b,#102132 80%);margin-bottom:17px}
+.mascot-panel img{display:block;width:152px;height:152px;object-fit:contain;flex:none;image-rendering:auto}
+.mascot-name{font-weight:730;font-size:22px;color:#fff}
+.mascot-description{color:#b9d0e4;font-size:13px;line-height:1.5;margin-top:6px}
+.mascot-preview{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.mascot-preview button{border:1px solid #44617b;border-radius:8px;background:#203a53;color:#dcefff;cursor:pointer;padding:5px 9px;font-size:12px}
+.mascot-preview button:hover{background:#315774}
+@media(max-width:760px){.mascot-panel{flex-direction:column;text-align:center}.mascot-panel img{width:128px;height:128px}}
 </style></head><body>
 <div class="shell"><aside class="sidebar"><div class="brand"><span class="robot">🤖</span>XiaoZhi PC</div>
 <button class="tab active" data-tab="home"><span class="glyph">⌂</span>Trang chính</button>
@@ -67,6 +75,17 @@ h1{font-size:32px;letter-spacing:-.8px;margin:0;font-weight:750}h1 small{display
 <section class="card activation" data-section="device"><h2><span class="ico">⚿</span> Kích hoạt thiết bị</h2><div class="code" id="activation">—— ——</div><p id="activationNote">Nếu chưa liên kết, mã kích hoạt sẽ xuất hiện tại đây. Nếu đã liên kết, không cần nhập lại.</p>
 <button class="button primary full" onclick="openExternal('https://xiaozhi.me')">↗ Mở xiaozhi.me</button></section>
 <section class="card rightSide volume" data-section="settings"><h2><span class="ico">🔊</span> Âm lượng</h2><div class="volumeTop"><small>Âm lượng phát của XiaoZhi</small><strong id="vol">70%</strong></div><input id="volume" type="range" min="0" max="100" value="70" aria-label="Âm lượng" onchange="send('volume',Number(this.value)/100)"><p>Điều chỉnh âm lượng phát giọng nói của XiaoZhi.</p></section>
+<section class="card voice" data-section="home"><h2><span class="ico">✨</span> Qoobee — biểu cảm trợ lý</h2>
+<div class="mascot-panel"><img id="mascotImage" src="/assets/emotions/bom-dia.gif" alt="Biểu cảm Qoobee" onerror="this.style.opacity='.2'">
+<div><div id="mascotState" class="mascot-name">Đang khởi động</div>
+<div class="mascot-description">Tự đổi hoạt ảnh theo trạng thái nghe, nói và cảm xúc do XiaoZhi AI gửi xuống.</div>
+<div class="mascot-preview">
+<button type="button" onclick="previewMascot('happy')">Vui</button>
+<button type="button" onclick="previewMascot('loving')">Yêu</button>
+<button type="button" onclick="previewMascot('sad')">Buồn</button>
+<button type="button" onclick="previewMascot('angry')">Giận</button>
+<button type="button" onclick="previewMascot('neutral')">Mặc định</button>
+</div><div class="mascot-description" id="mascotPreviewTip">Nút xem thử hiển thị trong 5 giây, không gửi lệnh lên AI.</div></div></div></section>
 <section class="card voice" data-section="home"><h2><span class="ico">🎙</span> Điều khiển giọng nói</h2><div class="audio"><div class="mic">🎙</div><div class="wave"><div class="bars" id="bars"></div><small id="voiceText">Sẵn sàng lắng nghe...</small><div style="margin-top:8px;font-size:12px;color:#93b3d2;text-align:center">Tín hiệu micro: <strong id="micLevel">0%</strong> · Đã gửi: <strong id="framesSent">0</strong> khung · Lỗi/bỏ khung: <strong id="framesDropped">0</strong></div><div style="height:5px;background:#27415a;border-radius:9px;margin:8px auto 0;max-width:340px"><div id="micMeter" style="height:100%;width:0%;background:#38baf9;border-radius:9px"></div></div></div></div><div class="controls"><button id="start" class="button primary" onclick="send('start')">🎙 Bắt đầu nói</button><button id="stop" class="button" onclick="send('stop')">■ Dừng nói</button><button class="button danger" onclick="send('abort')">◩ Ngắt phản hồi</button></div><p id="notice"></p></section>
 <section class="card rightSide info" data-section="device"><h2><span class="ico">▣</span> Thông tin thiết bị</h2><div class="pair">Tên thiết bị <strong>XiaoZhi-Go</strong></div><div class="pair">Địa chỉ MAC <strong id="mac">—</strong></div><div class="pair">Phiên làm việc <strong id="session">—</strong></div><div class="pair">Giao thức <strong>WebSocket + Opus</strong></div></section>
 <section class="card conversation" data-section="chat"><h2><span class="ico">☏</span> Hội thoại gần đây</h2><div id="history" class="chats"><p>Hội thoại sẽ xuất hiện khi bạn bắt đầu nói.</p></div></section>
@@ -83,8 +102,31 @@ try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"ap
 catch(e){$("notice").textContent=e.message}
 }
 async function send(action,value){try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action,value})});const data=await r.json();$("notice").textContent=r.ok?"":(data.error||"Không thực hiện được")}catch(e){$("notice").textContent="Lỗi: "+e.message}}
+const mascotMap={
+ idle:"bom-dia.gif", listening:"qoo-bee-qoo-bee-agapi.gif",
+ speaking:"qoobee.gif", thinking:"qoo-bee-qoo-bee-agapi.gif",
+ happy:"qoobee.gif", laughing:"qoobee.gif", funny:"qoobee.gif",
+ loving:"cute-dragon-love-you.gif", sad:"qoobee-cry.gif", crying:"qoobee-cry.gif",
+ angry:"qoobee-upset.gif", confused:"qoo-bee-qoo-bee-agapi.gif",
+ surprised:"qoobee.gif", shocked:"qoobee-upset.gif",
+ embarrassed:"qoo-bee-qoo-bee-agapi.gif", relaxed:"bom-dia.gif", sleepy:"bom-dia.gif",
+ winking:"bom-dia.gif", confident:"qoobee.gif", silly:"qoobee.gif"
+};
+let mascotOverride="",mascotPreviewUntil=0,currentMascot="";
+function previewMascot(kind){mascotOverride=kind;mascotPreviewUntil=Date.now()+5000;showMascot(kind,true)}
+function showMascot(kind,preview=false){
+ const filename=mascotMap[kind]||mascotMap.idle;
+ const image=$("mascotImage");
+ if(currentMascot!==filename){currentMascot=filename;image.style.opacity="1";image.src="/assets/emotions/"+filename}
+ $("mascotState").textContent=(preview?"Xem thử: ":"")+({listening:"Đang lắng nghe",speaking:"Đang trả lời",thinking:"Đang suy nghĩ",idle:"Đang chờ",happy:"Vui vẻ",loving:"Yêu thương",sad:"Buồn",crying:"Khóc",angry:"Giận",confused:"Bối rối"}[kind]||kind);
+}
 let previous="";
-async function refresh(){try{const r=await fetch("/api/status");if(!r.ok)throw Error("HTTP "+r.status);let s=await r.json();$("musicState").textContent=(s.music||{}).state||"stopped";$("musicTrack").textContent=[(s.music||{}).title,(s.music||{}).artist,(s.music||{}).error].filter(Boolean).join(" — ");$("connection").textContent=stateNames[s.phase]||s.phase;$("audioStatus").textContent=s.state==="listening"?"Đang thu âm":s.state==="speaking"?"Đang phát âm":"Sẵn sàng";
+async function refresh(){try{const r=await fetch("/api/status");if(!r.ok)throw Error("HTTP "+r.status);let s=await r.json();
+let mood=s.state==="listening"?"listening":s.state==="speaking"?(s.emotion&&s.emotion!=="neutral"?s.emotion:"speaking"):
+(s.music&&s.music.state==="playing"?"happy":s.emotion&&s.emotion!=="neutral"?s.emotion:"idle");
+if(s.phase==="connecting"||s.phase==="activating"||s.phase==="error")mood="thinking";
+if(Date.now()<mascotPreviewUntil)showMascot(mascotOverride,true);else showMascot(mood);
+$("musicState").textContent=(s.music||{}).state||"stopped";$("musicTrack").textContent=[(s.music||{}).title,(s.music||{}).artist,(s.music||{}).error].filter(Boolean).join(" — ");$("connection").textContent=stateNames[s.phase]||s.phase;$("audioStatus").textContent=s.state==="listening"?"Đang thu âm":s.state==="speaking"?"Đang phát âm":"Sẵn sàng";
 $("voiceText").textContent=s.state==="listening"?"Đang nghe bạn nói...":s.state==="speaking"?"Trợ lý đang trả lời...":(s.phase==="ready"?"Sẵn sàng lắng nghe...":"Đợi kết nối máy chủ...");
 $("activation").textContent=s.activation||"—— ——";$("activationNote").textContent=s.activation?"Nhập mã này trên xiaozhi.me để liên kết thiết bị.":"Đã có tài khoản? Thiết bị sẽ tự liên kết lại nếu còn cấu hình cũ.";
 $("mac").textContent=s.mac||"—";$("session").textContent=s.session_id||"—";$("micLevel").textContent=(s.mic_level||0)+"%";$("micMeter").style.width=(s.mic_level||0)+"%";$("framesSent").textContent=s.mic_frames_sent||0;$("framesDropped").textContent=s.mic_frames_dropped||0;$("start").disabled=s.phase!=="ready"||s.recording;$("stop").disabled=s.phase!=="ready"||!s.recording;

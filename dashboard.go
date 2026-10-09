@@ -130,16 +130,17 @@ func (d *Dashboard) handler() http.Handler{
   _=json.NewEncoder(w).Encode(map[string]any{
    "phase":phase,"state":state,"recording":state=="listening","activation":activation,
    "error":failure,"mac":d.app.cfg.MacAddress,"volume":volume,"events":events,"logs":logs,
-   "mic_level":micLevel,"mic_frames_sent":d.app.micFramesSent.Load(),
+   "mic_level":micLevel,"music":func()MusicStatus{if d.app.music!=nil{return d.app.music.Status()};return MusicStatus{State:"stopped"}}(),"mic_frames_sent":d.app.micFramesSent.Load(),
    "mic_frames_dropped":d.app.micFramesDropped.Load(),
   })
  })
  mux.HandleFunc("/api/action",func(w http.ResponseWriter,r *http.Request){
   if r.Method!=http.MethodPost{http.Error(w,"Sai phương thức",405);return}
   if r.Header.Get("X-Xiaozhi-Token")!=d.nonce||(r.Header.Get("Origin")!=""&&r.Header.Get("Origin")!=d.url){http.Error(w,"Không được phép",403);return}
-  var req struct {Action string `json:"action"`;Value float32 `json:"value"`}
+  var req struct {Action string `json:"action"`;Value float32 `json:"value"`;Song string `json:"song"`;Artist string `json:"artist"`}
   if err:=json.NewDecoder(io.LimitReader(r.Body,2048)).Decode(&req);err!=nil{http.Error(w,"Dữ liệu không hợp lệ",400);return}
   err:=d.performAction(req.Action,req.Value)
+  if req.Action=="music_play" && d.app.music!=nil {err=d.app.music.Play(req.Song,req.Artist)}
   w.Header().Set("Content-Type","application/json; charset=utf-8")
   if err!=nil{
    w.WriteHeader(http.StatusConflict)
@@ -159,6 +160,13 @@ func (d *Dashboard) handler() http.Handler{
 }
 func (d *Dashboard) performAction(action string,value float32)error{
  if action=="quit"{d.requestQuit();return nil}
+ if d.app.music!=nil {
+ switch action {
+ case "music_stop":return d.app.music.Stop()
+ case "music_pause":return d.app.music.Pause()
+ case "music_resume":return d.app.music.Resume()
+ }
+ }
  if action=="volume"{
   if d.app.audio==nil{return fmt.Errorf("âm thanh chưa sẵn sàng")}
   if value<0||value>1{return fmt.Errorf("âm lượng phải từ 0 đến 100%%")}

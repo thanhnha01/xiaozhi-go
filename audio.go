@@ -12,6 +12,8 @@ import (
 	"log"
 	"math"
 	"sync/atomic"
+ "context"
+ "time"
 	"sync"
 
 	"github.com/gordonklaus/portaudio"
@@ -41,6 +43,10 @@ type AudioManager struct {
 	decoderReady bool
 	serverRate   int
 	serverFrames int
+ musicBuf [][]int16
+ musicGeneration uint64
+ musicPaused bool
+ musicLastFrame time.Time
 }
 
 // InitAudio 初始化 portaudio 与 Opus 编码器。
@@ -178,6 +184,15 @@ func (a *AudioManager) outputCallback(_, out []int16) {
 		applyVolume(out, volume)
 		return
 	}
+    if len(a.musicBuf)>0 && !a.musicPaused && (a.stateFn==nil||a.stateFn()==StateIdle) {
+        frame:=a.musicBuf[0]
+        copy(out,frame)
+        a.musicBuf=a.musicBuf[1:]
+        volume:=a.volume
+        a.mu.Unlock()
+        applyVolume(out,volume)
+        return
+    }
 	a.mu.Unlock()
 	for i := range out {
 		out[i] = 0
@@ -268,4 +283,28 @@ func applyVolume(samples []int16, volume float32) {
 		}
 		samples[i] = int16(v)
 	}
+}
+
+func (a *AudioManager) OutputRate()int {
+ a.mu.Lock();defer a.mu.Unlock();return a.serverRate
+}
+func (a *AudioManager) BeginMusic(gen uint64) {
+ a.mu.Lock();a.musicGeneration=gen;a.musicBuf=nil;a.musicPaused=false;a.mu.Unlock()
+}
+func (a *AudioManager) StopMusic(gen uint64) {
+ a.mu.Lock();a.musicGeneration=gen;a.musicBuf=nil;a.musicPaused=false;a.mu.Unlock()
+}
+func (a *AudioManager) SetMusicPaused(paused bool) {
+ a.mu.Lock();a.musicPaused=paused;a.mu.Unlock()
+}
+func (a *AudioManager) PushMusicFrame(ctx context.Context,gen uint64,frame []int16)bool {
+ ticker:=time.NewTicker(15*time.Millisecond);defer ticker.Stop()
+ for{
+  a.mu.Lock()
+  if gen!=a.musicGeneration{a.mu.Unlock();return false}
+  // Queue max 36 * 60ms = ~2.2 seconds. Music pauses while speaking.
+  if len(a.musicBuf)<36{a.musicBuf=append(a.musicBuf,frame);a.mu.Unlock();return true}
+  a.mu.Unlock()
+  select{case <-ctx.Done():return false;case <-ticker.C:}
+ }
 }

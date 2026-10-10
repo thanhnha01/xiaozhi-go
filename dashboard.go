@@ -70,6 +70,7 @@ func (d *Dashboard) requestQuit() {
  d.mu.RLock()
  fn:=d.windowClose
  d.mu.RUnlock()
+ if d.app.cancel!=nil{d.app.cancel()}
  if fn!=nil {fn();return}
  d.app.quitOnce.Do(func(){close(d.app.quitChan)})
 }

@@ -11,6 +11,10 @@ import (
  "io"
  "net/http"
  "net/url"
+ "regexp"
+ "strconv"
+ "sort"
+ "math"
  "strings"
  "sync"
  "time"
@@ -26,6 +30,24 @@ type MusicStatus struct {
  Artist string `json:"artist"`
  Error string `json:"error,omitempty"`
  PositionSeconds int64 `json:"position_seconds"`
+ DurationSeconds int64 `json:"duration_seconds"`
+ Lyrics []LyricLine `json:"lyrics,omitempty"`
+}
+
+type LyricLine struct { TimeSeconds float64 `json:"time_seconds"`; Text string `json:"text"` }
+var lrcTag = regexp.MustCompile(`\[(\d{1,3}):(\d{2})(?:\.(\d{1,3}))?\]`)
+func parseLyrics(body string) []LyricLine {
+ var lines []LyricLine
+ for _,raw:=range strings.Split(strings.ReplaceAll(body,"\r",""),"\n") {
+  matches:=lrcTag.FindAllStringSubmatch(raw,-1)
+  text:=strings.TrimSpace(lrcTag.ReplaceAllString(raw,""))
+  if text=="" || strings.HasPrefix(text,"[") {continue}
+  if len(matches)==0 {lines=append(lines,LyricLine{TimeSeconds:-1,Text:text});continue}
+  for _,m:=range matches {mi,_:=strconv.Atoi(m[1]);sec,_:=strconv.Atoi(m[2]);frac:=0.0;if len(m[3])>0{v,_:=strconv.Atoi(m[3]);frac=float64(v)/math.Pow10(len(m[3]))};lines=append(lines,LyricLine{TimeSeconds:float64(mi*60+sec)+frac,Text:text})}
+ }
+ sort.SliceStable(lines,func(i,j int)bool{return lines[i].TimeSeconds<lines[j].TimeSeconds})
+ if len(lines)>400 {lines=lines[:400]}
+ return lines
 }
 
 type MusicPlayer struct {
@@ -36,6 +58,8 @@ type MusicPlayer struct {
  cancel context.CancelFunc
  generation uint64
  status MusicStatus
+ streams sync.WaitGroup
+ closed bool
 }
 
 func NewMusicPlayer(audio *AudioManager,baseURL string)*MusicPlayer{
@@ -98,6 +122,7 @@ func (m *MusicPlayer) lookup(ctx context.Context,song,artist string)(musicMetada
 }
 
 func (m *MusicPlayer) Play(song,artist string)error{
+ m.mu.Lock();if m.closed {m.mu.Unlock();return errors.New("trình phát đã đóng")};m.mu.Unlock()
  song=strings.TrimSpace(song);artist=strings.TrimSpace(artist)
  if song==""||len([]rune(song))>160||len([]rune(artist))>160{return errors.New("tên bài hát/ca sĩ không hợp lệ")}
  if m.audio==nil{return errors.New("âm thanh chưa sẵn sàng")}
@@ -112,10 +137,13 @@ func (m *MusicPlayer) Play(song,artist string)error{
  gen:=m.generation
  title:=strings.TrimSpace(meta.Title);if title==""{title=song}
  who:=strings.TrimSpace(meta.Artist);if who==""{who=artist}
- m.status=MusicStatus{State:"buffering",Title:title,Artist:who}
+ duration:=int64(math.Round(meta.Duration));if duration<0||duration>86400{duration=0}
+ m.status=MusicStatus{State:"buffering",Title:title,Artist:who,DurationSeconds:duration}
  m.audio.BeginMusic(gen)
  m.mu.Unlock()
- go m.stream(playbackCtx,gen,audioURL)
+ m.streams.Add(1)
+ go func(){defer m.streams.Done();m.stream(playbackCtx,gen,audioURL)}()
+ if meta.LyricURL!="" {m.streams.Add(1);go func(){defer m.streams.Done();m.fetchLyrics(playbackCtx,gen,meta.LyricURL)}()}
  return nil
 }
 
@@ -163,7 +191,7 @@ func (m *MusicPlayer) stream(ctx context.Context,gen uint64,audioURL string){
     chunk:=append([]int16(nil),frames[:frameSize]...)
     if !m.audio.PushMusicFrame(ctx,gen,chunk){return}
     played+=int64(frameDurationMs)
-    m.update(gen,func(s *MusicStatus){if s.State=="buffering"{s.State="playing"};s.PositionSeconds=played/1000})
+    m.update(gen,func(s *MusicStatus){if s.State=="buffering"{s.State="playing"};s.PositionSeconds=m.audio.MusicElapsedSeconds()})
     frames=frames[frameSize:]
    }
   }
@@ -181,6 +209,31 @@ func (m *MusicPlayer) stream(ctx context.Context,gen uint64,audioURL string){
 }
 func (m *MusicPlayer) fail(gen uint64,err error){
  m.update(gen,func(s *MusicStatus){s.State="error";s.Error=err.Error()})
+}
+func (m *MusicPlayer) fetchLyrics(ctx context.Context,gen uint64,raw string) {
+ u,err:=musicProxyLyricURL(m.baseURL,raw);if err!=nil{return}
+ req,err:=http.NewRequestWithContext(ctx,http.MethodGet,u,nil);if err!=nil{return}
+ client:=*m.client;client.Timeout=12*time.Second
+ resp,err:=client.Do(req);if err!=nil{return};defer resp.Body.Close()
+ if resp.StatusCode!=200{return}
+ b,err:=io.ReadAll(io.LimitReader(resp.Body,256*1024));if err!=nil{return}
+ body:=string(b)
+ if strings.Contains(resp.Header.Get("Content-Type"),"json") {
+  var v struct {Lyric string `json:"lyric"`; Lyrics string `json:"lyrics"`; Data struct{Lyric string `json:"lyric"`} `json:"data"`}
+  if json.Unmarshal(b,&v)!=nil{return};body=v.Lyric;if body==""{body=v.Lyrics};if body==""{body=v.Data.Lyric}
+ }
+ lines:=parseLyrics(body)
+ m.update(gen,func(s *MusicStatus){s.Lyrics=lines})
+}
+func musicProxyLyricURL(base,raw string)(string,error){
+ root,err:=musicEndpoint(base,"/proxy_lyric");if err!=nil{return "",err}
+ ref,err:=url.Parse(strings.TrimSpace(raw));if err!=nil||ref==nil||ref.IsAbs()||ref.Host!=""||ref.User!=nil||ref.Fragment!=""||ref.Path!=root.Path{return "",errors.New("lyric URL không hợp lệ")}
+ if ref.Query().Get("path")==""&&ref.Query().Get("id")==""{return "",errors.New("lyric URL thiếu tham số")}
+ root.RawQuery=ref.RawQuery;return root.String(),nil
+}
+func (m *MusicPlayer) Close() {
+ m.mu.Lock();m.closed=true;if m.cancel!=nil{m.cancel();m.cancel=nil};m.generation++;m.audio.StopMusic(m.generation);m.mu.Unlock()
+ m.streams.Wait()
 }
 func (m *MusicPlayer) Pause()error{
  m.mu.Lock();defer m.mu.Unlock()
@@ -200,7 +253,9 @@ func (m *MusicPlayer) Stop()error{
  return nil
 }
 func (m *MusicPlayer) Status()MusicStatus{
- m.mu.Lock();defer m.mu.Unlock();return m.status
+ m.mu.Lock();defer m.mu.Unlock()
+ if m.audio!=nil && (m.status.State=="playing"||m.status.State=="paused"||m.status.State=="buffering"){m.status.PositionSeconds=m.audio.MusicElapsedSeconds()}
+ result:=m.status;result.Lyrics=append([]LyricLine(nil),m.status.Lyrics...);return result
 }
 
 // Linear mono PCM resampler preserves fractional phase between MP3 chunks.

@@ -56,6 +56,7 @@ func openDesktopWindow(d *Dashboard) error {
         d.setWindowClose(nil)
         // The GUI thread has now left its message loop. Ask the Go backend
         // to stop; main() will close socket, PortAudio and HTTP server.
+        if d.app.cancel!=nil{d.app.cancel()}
         d.app.quitOnce.Do(func(){ close(d.app.quitChan) })
     }()
     return <-ready

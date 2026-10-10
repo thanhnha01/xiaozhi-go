@@ -10,6 +10,7 @@ package main
 
 import (
 	"flag"
+ "context"
 	"fmt"
 	"io"
 	"log"
@@ -42,6 +43,7 @@ type App struct {
 	quitChan chan struct{}
 	quitOnce sync.Once
 	dashboard *Dashboard
+ cancel context.CancelFunc
 	micFramesSent atomic.Uint64
 	micFramesDropped atomic.Uint64
 }
@@ -87,11 +89,14 @@ func main() {
 	}
 	log.Printf("设备身份: MAC=%s, UUID=%s", cfg.MacAddress, cfg.UUID)
 
-	app := &App{
+	lifeCtx,lifeCancel:=context.WithCancel(context.Background())
+ defer lifeCancel()
+ app := &App{
 		cfg:      cfg,
 		sm:       NewStateMachine(),
 		http:     &http.Client{Timeout: 15 * time.Second},
 		quitChan: make(chan struct{}),
+ cancel:lifeCancel,
 	}
 	app.sm.TransitionTo(StateStarting)
 	if !consoleOnly {
@@ -112,8 +117,8 @@ func main() {
 	}
 	app.audio = audio
  app.music=NewMusicPlayer(audio,musicURL)
- defer app.music.Stop()
-	defer audio.Close()
+ defer audio.Close()
+ defer app.music.Close()
 	audio.SetStateCallback(func() State { return app.sm.Current() })
 
 	// ---------- 3. 设备绑定检查（对应原版 ActivationTask） ----------
@@ -133,10 +138,11 @@ func main() {
 		log.Println("正在检查设备绑定状态...")
 		var onActivation func(string)
 		if app.dashboard != nil { onActivation=app.dashboard.setActivation }
-		if err := RunActivationWithCallback(app.http, cfg, onActivation); err != nil {
-			if app.dashboard != nil { app.dashboard.setError("Không kích hoạt được thiết bị: "+err.Error()); app.waitForQuit(); return }; log.Fatalf("Kích hoạt thất bại: %v", err)
+		if err := RunActivationWithContext(lifeCtx,app.http,cfg,onActivation); err != nil {
+			if lifeCtx.Err()!=nil{return};if app.dashboard != nil { app.dashboard.setError("Không kích hoạt được thiết bị: "+err.Error()); app.waitForQuit(); return }; log.Fatalf("Kích hoạt thất bại: %v", err)
 		}
-		if err := cfg.saveConfig(); err != nil {
+		if lifeCtx.Err()!=nil{return}
+ if err := cfg.saveConfig(); err != nil {
 			log.Fatalf("保存配置失败: %v", err)
 		}
 	}
@@ -214,7 +220,8 @@ func main() {
 	app.stateMu.Lock()
 	if app.isRecording { app.stopListeningLocked() }
 	app.stateMu.Unlock()
-	app.proto.Close()
+	if app.cancel!=nil{app.cancel()}
+ app.proto.Close()
 	if app.dashboard!=nil { app.dashboard.close() }
 }
 func (app *App) waitForQuit(){

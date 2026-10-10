@@ -47,6 +47,7 @@ type AudioManager struct {
  musicGeneration uint64
  musicPaused bool
  musicLastFrame time.Time
+ musicPlayedFrames uint64
 }
 
 // InitAudio 初始化 portaudio 与 Opus 编码器。
@@ -188,6 +189,7 @@ func (a *AudioManager) outputCallback(_, out []int16) {
         frame:=a.musicBuf[0]
         copy(out,frame)
         a.musicBuf=a.musicBuf[1:]
+        a.musicPlayedFrames++
         volume:=a.volume
         a.mu.Unlock()
         applyVolume(out,volume)
@@ -289,7 +291,7 @@ func (a *AudioManager) OutputRate()int {
  a.mu.Lock();defer a.mu.Unlock();return a.serverRate
 }
 func (a *AudioManager) BeginMusic(gen uint64) {
- a.mu.Lock();a.musicGeneration=gen;a.musicBuf=nil;a.musicPaused=false;a.mu.Unlock()
+ a.mu.Lock();a.musicGeneration=gen;a.musicBuf=nil;a.musicPaused=false;a.musicPlayedFrames=0;a.mu.Unlock()
 }
 func (a *AudioManager) StopMusic(gen uint64) {
  a.mu.Lock();a.musicGeneration=gen;a.musicBuf=nil;a.musicPaused=false;a.mu.Unlock()
@@ -307,4 +309,11 @@ func (a *AudioManager) PushMusicFrame(ctx context.Context,gen uint64,frame []int
   a.mu.Unlock()
   select{case <-ctx.Done():return false;case <-ticker.C:}
  }
+}
+
+// MusicElapsedSeconds measures PCM frames actually sent to PortAudio. Buffering,
+// paused playback and speech interruptions do not advance the clock.
+func (a *AudioManager) MusicElapsedSeconds() int64 {
+ a.mu.Lock();defer a.mu.Unlock()
+ return int64(a.musicPlayedFrames*uint64(frameDurationMs)/1000)
 }

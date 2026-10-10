@@ -50,7 +50,8 @@ type FirmwareInfo struct {
 
 // checkVersion 对应原版 Ota::CheckVersion()（ota.cc:77-245）。
 // POST 系统信息到 OTA 接口，解析激活码 / 协议配置 / 服务器时间 / 固件版本。
-func checkVersion(client *http.Client, cfg *DeviceConfig) (*OtaCheckResponse, error) {
+func checkVersion(client *http.Client, cfg *DeviceConfig) (*OtaCheckResponse, error) { return checkVersionContext(context.Background(),client,cfg) }
+func checkVersionContext(ctx context.Context,client *http.Client, cfg *DeviceConfig) (*OtaCheckResponse, error) {
 	url := cfg.OtaURL
 	if url == "" {
 		url = defaultOtaURL
@@ -64,7 +65,7 @@ func checkVersion(client *http.Client, cfg *DeviceConfig) (*OtaCheckResponse, er
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx,http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +118,8 @@ func checkVersion(client *http.Client, cfg *DeviceConfig) (*OtaCheckResponse, er
 
 // activate 对应原版 Ota::Activate()（ota.cc:458-492）。
 // 轮询 /activate，200=绑定成功；202=等待用户输入验证码；其他=失败。
-func activate(client *http.Client, cfg *DeviceConfig) error {
+func activate(client *http.Client, cfg *DeviceConfig) error {return activateContext(context.Background(),client,cfg)}
+func activateContext(ctx context.Context,client *http.Client, cfg *DeviceConfig) error {
 	url := cfg.OtaURL
 	if url == "" {
 		url = defaultOtaURL
@@ -130,7 +132,7 @@ func activate(client *http.Client, cfg *DeviceConfig) error {
 
 	// v1 无序列号设备发送空对象（原版 GetActivationPayload()，ota.cc:421-456）
 	payload := []byte("{}")
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx,http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
 		return err
 	}
@@ -169,19 +171,22 @@ func RunActivation(client *http.Client, cfg *DeviceConfig) error {
 	return RunActivationWithCallback(client,cfg,nil)
 }
 
-func RunActivationWithCallback(client *http.Client, cfg *DeviceConfig, onActivation func(string)) error {
+func RunActivationWithCallback(client *http.Client, cfg *DeviceConfig, onActivation func(string)) error { return RunActivationWithContext(context.Background(),client,cfg,onActivation) }
+func activationWait(ctx context.Context,d time.Duration) error {t:=time.NewTimer(d);defer t.Stop();select{case <-ctx.Done():return ctx.Err();case <-t.C:return nil}}
+func RunActivationWithContext(ctx context.Context,client *http.Client,cfg *DeviceConfig,onActivation func(string)) error {
 	const maxRetry = 10
 	retryDelay := 10 * time.Second
 
 	for attempt := 0; ; attempt++ {
-		resp, err := checkVersion(client, cfg)
+ if err:=ctx.Err();err!=nil{return err}
+ resp, err := checkVersionContext(ctx,client,cfg)
 		if err != nil {
 			if attempt >= maxRetry {
 				return fmt.Errorf("检查版本重试次数耗尽: %w", err)
 			}
 			log.Printf("检查版本失败（第 %d/%d 次），%.0f 秒后重试: %v",
 				attempt+1, maxRetry, retryDelay.Seconds(), err)
-			time.Sleep(retryDelay)
+			if err:=activationWait(ctx,retryDelay);err!=nil{return err}
 			retryDelay *= 2
 			continue
 		}
@@ -202,16 +207,16 @@ func RunActivationWithCallback(client *http.Client, cfg *DeviceConfig, onActivat
 		activated := false
 		for i := 0; i < 10; i++ {
 			log.Printf("正在等待绑定... %d/10", i+1)
-			err := activate(client, cfg)
+			err := activateContext(ctx,client,cfg)
 			if err == nil {
 				log.Println("设备绑定成功")
 				activated = true
 				break
 			} else if err == errActivationTimeout {
-				time.Sleep(3 * time.Second)
+				if err:=activationWait(ctx,3*time.Second);err!=nil{return err}
 			} else {
 				log.Printf("激活请求失败: %v（10 秒后重试）", err)
-				time.Sleep(10 * time.Second)
+				if err:=activationWait(ctx,10*time.Second);err!=nil{return err}
 			}
 		}
 		if !activated {
@@ -219,7 +224,7 @@ func RunActivationWithCallback(client *http.Client, cfg *DeviceConfig, onActivat
 			continue
 		}
 		// 绑定完成后重新检查，确认服务器已记录绑定关系
-		resp, err = checkVersion(client, cfg)
+		resp, err = checkVersionContext(ctx,client,cfg)
 		if err != nil {
 			return err
 		}

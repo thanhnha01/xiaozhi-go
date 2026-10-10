@@ -52,6 +52,7 @@ button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus
 @media(max-width:1100px){.home-grid{grid-template-columns:1fr}.side-stack{display:grid;grid-template-columns:1fr 1fr}.hero{min-height:470px}}
 @media(max-width:800px){.shell{display:block}.sidebar{position:fixed;z-index:20;bottom:0;left:0;right:0;min-height:68px;padding:7px 8px;flex-direction:row;justify-content:space-around;box-shadow:0 -8px 30px #45306d10;border-top:1px solid var(--border);border-right:0}.brand,.sidebar-bottom{display:none}.nav{width:auto;flex:1;max-width:140px;justify-content:center;flex-direction:column;gap:2px;padding:6px 4px;border-radius:12px;font-size:11px}.nav svg{width:19px;height:19px}.page-wrap{padding:20px 16px 100px}.topbar{margin-bottom:20px}.topbar h1{font-size:23px}.topbar p{font-size:12px}.side-stack,.music-layout,.settings-grid{grid-template-columns:1fr}.card{padding:19px}.hero{min-height:455px}.mascot-wrap{height:260px}.mascot-wrap img{max-width:235px;max-height:235px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+.music-progress{margin-top:18px}.music-times{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-bottom:7px}#musicProgress{width:100%;height:9px;accent-color:var(--violet)}.lyrics-panel{margin-top:22px;padding:16px;background:#f8f6ff;border:1px solid var(--border);border-radius:14px}.lyrics-text{max-height:260px;overflow:auto;font-size:14px;color:#756a87;line-height:1.8;margin-top:10px;white-space:pre-wrap}.lyric-line{padding:3px 5px;border-radius:7px}.lyric-line.active{font-weight:750;color:var(--violet);background:#ece4ff}
 </style></head><body>
 <div class="shell">
 <aside class="sidebar" aria-label="Điều hướng">
@@ -95,6 +96,8 @@ button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus
    <button class="btn primary wide" id="playButton" onclick="playMusic()">▶ Phát nhạc</button>
    <div class="music-actions"><button class="btn soft" onclick="send('music_pause')">Ⅱ Tạm dừng</button><button class="btn soft" onclick="send('music_resume')">▶ Tiếp tục</button><button class="btn danger" onclick="send('music_stop')">■ Dừng</button></div>
    <div class="song-name" id="musicTrack">Chưa có bài hát</div><div class="music-status" id="musicState">Chọn bài hát để bắt đầu.</div>
+<div class="music-progress"><div class="music-times"><span id="elapsed">0:00</span><span id="duration">--:--</span></div><progress id="musicProgress" value="0" max="100" aria-label="Tiến trình bài hát"></progress></div>
+<div class="lyrics-panel"><strong>🎤 Lời bài hát</strong><div id="lyrics" class="lyrics-text">Chưa có lời bài hát từ nguồn nhạc.</div></div>
   </div><div class="music-hero"><div class="disc">🎵</div></div></div>
  </div></section>
  <section class="page" id="page-settings"><div class="section-box">
@@ -147,6 +150,23 @@ function createText(tag,value,cls){const el=document.createElement(tag);el.textC
 function updateHistory(events){const valid=events.filter(e=>e.kind==="stt"||e.kind==="tts"||e.kind==="llm");const recent=valid.slice(-4);const box=$("recent");box.replaceChildren();if(!recent.length)box.append(createText("p","Những câu chuyện của chúng ta sẽ xuất hiện ở đây.","note"));else for(const e of recent){let item=createText("div",e.text,"recent-item"+(e.kind==="stt"?" me":""));item.prepend(createText("small",e.kind==="stt"?"Bạn":"Tiểu Trí"));box.append(item)}
 const target=$("history");target.replaceChildren();if(!valid.length){let e=createText("div","","empty");e.append(createText("span","💜","empty-emoji"),createText("strong","Chưa có cuộc trò chuyện nào"),createText("span","Nhấn trò chuyện ở trang chủ để bắt đầu nhé!"));target.append(e);return}
 for(const e of valid){let row=createText("div","","chat-message"+(e.kind==="stt"?" me":""));if(e.kind!=="stt")row.append(createText("span","🌟","chat-icon"));const bubble=createText("div",e.text,"chat-content");bubble.append(createText("small",e.time));row.append(bubble);target.append(row)}target.scrollTop=target.scrollHeight}
+function musicClock(s){const n=Math.max(0,Math.floor(Number(s)||0));return Math.floor(n/60)+":"+String(n%60).padStart(2,"0")}
+let lyricKey="",lyricNodes=[];
+function updateMusicLyrics(song) {
+ const lines=Array.isArray(song.lyrics)?song.lyrics:[];
+ const key=JSON.stringify(lines);
+ if(lyricKey!==key){
+  lyricKey=key;const target=$("lyrics");target.replaceChildren();lyricNodes=[];
+  if(!lines.length)target.textContent="Chưa có lời bài hát từ nguồn nhạc.";
+  else for(const l of lines){const el=createText("div",String(l.text||""),"lyric-line");target.append(el);lyricNodes.push(el)}
+ }
+ if(!lines.length)return;
+ const position=Number(song.position_seconds)||0;
+ let active=-1;
+ for(let i=0;i<lines.length;i++){const n=Number(lines[i].time_seconds);if(n>=0 && position>=n)active=i}
+ lyricNodes.forEach((el,i)=>el.classList.toggle("active",i===active));
+ if(active>=0&&currentPage==="music")lyricNodes[active].scrollIntoView({block:"nearest",behavior:"smooth"});
+}
 function statusLabel(s){if(s.phase==="error")return"Đang gặp sự cố";if(s.phase==="connecting"||s.phase==="activating"||s.phase==="starting")return"Đang kết nối";return s.phase==="ready"?"Đã kết nối":"Đang kết nối"}
 function updateUI(s){
  if(s.update?.available && s.update.version!==dismissedUpdate){$("updateOverlay").classList.remove("hidden");$("updateMessage").textContent="Đã có bản "+s.update.version+". Cập nhật ngay để sử dụng phiên bản mới."}
@@ -171,6 +191,10 @@ function updateUI(s){
  const song=(s.music||{});$("musicTrack").textContent=song.title||"Chưa có bài hát";
  const nameMap={stopped:"Chọn bài hát để bắt đầu.",buffering:"Đang chuẩn bị âm nhạc...",playing:"Đang phát",paused:"Đã tạm dừng",finished:"Đã phát xong",error:"Không phát được bài hát"};
  $("musicState").textContent=(nameMap[song.state]||"Sẵn sàng")+(song.artist?" · "+song.artist:"")+(song.error?" — "+song.error:"");
+ const elapsed=Math.max(0,Number(song.position_seconds)||0),duration=Math.max(0,Number(song.duration_seconds)||0);
+ $("elapsed").textContent=musicClock(elapsed);$("duration").textContent=duration?musicClock(duration):"--:--";
+ $("musicProgress").value=duration?Math.min(100,Math.max(0,elapsed/duration*100)):0;
+ updateMusicLyrics(song);
  const pct=Math.round((s.volume??.7)*100);$("vol").textContent=pct+"%";if(document.activeElement!==$("volume"))$("volume").value=pct;
  const signature=JSON.stringify((s.events||[]).filter(e=>["stt","tts","llm"].includes(e.kind)));if(eventSignature!==signature){eventSignature=signature;updateHistory(s.events||[])}
  if(s.error&&s.phase==="error"&&lastState!=="error")notify("Tiểu Trí chưa kết nối được. Bạn thử mở lại sau nhé.");

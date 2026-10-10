@@ -131,6 +131,7 @@ func (m *MusicPlayer) Play(song,artist string)error{
  meta,audioURL,err:=m.lookup(ctx,song,artist)
  if err!=nil{return err}
  m.mu.Lock()
+ if m.closed{m.mu.Unlock();return errors.New("trình phát đã đóng")}
  if m.cancel!=nil{m.cancel()}
  playbackCtx,playbackCancel:=context.WithCancel(context.Background())
  m.cancel=playbackCancel;m.generation++
@@ -140,10 +141,11 @@ func (m *MusicPlayer) Play(song,artist string)error{
  duration:=int64(math.Round(meta.Duration));if duration<0||duration>86400{duration=0}
  m.status=MusicStatus{State:"buffering",Title:title,Artist:who,DurationSeconds:duration}
  m.audio.BeginMusic(gen)
- m.mu.Unlock()
  m.streams.Add(1)
+ if meta.LyricURL!="" {m.streams.Add(1)}
+ m.mu.Unlock()
  go func(){defer m.streams.Done();m.stream(playbackCtx,gen,audioURL)}()
- if meta.LyricURL!="" {m.streams.Add(1);go func(){defer m.streams.Done();m.fetchLyrics(playbackCtx,gen,meta.LyricURL)}()}
+ if meta.LyricURL!="" {go func(){defer m.streams.Done();m.fetchLyrics(playbackCtx,gen,meta.LyricURL)}()}
  return nil
 }
 

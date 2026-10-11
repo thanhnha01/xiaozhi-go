@@ -38,6 +38,9 @@ button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus
 .chat-message{display:flex;gap:11px;align-items:flex-end}.chat-message.me{justify-content:flex-end}.chat-icon{width:33px;height:33px;border-radius:12px;background:#f4eeff;display:grid;place-items:center;font-size:17px;flex:0 0 33px}
 .chat-content{max-width:min(78%,600px);padding:13px 16px;border-radius:17px 17px 17px 4px;background:#f5f2fc;color:#51466d;white-space:pre-wrap;overflow-wrap:anywhere}
 .chat-message.me .chat-content{border-radius:17px 17px 4px 17px;background:#7859df;color:#fff}
+.chat-composer{display:flex;gap:10px;align-items:end;border-top:1px solid var(--border);padding-top:16px;margin-top:14px}
+.chat-composer textarea{flex:1;min-width:0;min-height:54px;max-height:140px;resize:vertical;padding:14px;font:inherit;border:1px solid #e5dfed;border-radius:14px}
+.chat-composer button{min-height:54px}.chat-hint{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:8px}
 .chat-content small{display:block;opacity:.65;font-size:11px;margin-top:5px}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#a09aad;gap:7px;min-height:170px;text-align:center}.empty .empty-emoji{font-size:42px}.empty strong{color:#746b88}
 .section-box{max-width:850px;margin:auto}.music-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.7fr);gap:20px}
@@ -85,8 +88,10 @@ button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus
    </div>
  </section>
  <section class="page" id="page-chat"><div class="section-box"><div class="card">
-  <h2 class="page-heading">Cuộc trò chuyện của chúng ta 💬</h2><p class="description">Bạn cứ nói, Tiểu Trí sẽ lắng nghe và trả lời.</p>
+  <h2 class="page-heading">Cuộc trò chuyện của chúng ta 💬</h2><p class="description">Nhắn tin trực tiếp hoặc trò chuyện bằng micro. Tiểu Trí sẽ trả lời bằng giọng nói.</p>
   <div id="history" class="chat-box"><div class="empty"><span class="empty-emoji">💜</span><strong>Chưa có cuộc trò chuyện nào</strong><span>Chạm nút trò chuyện ở trang chủ để bắt đầu nhé!</span></div></div>
+ <form class="chat-composer" id="chatForm" onsubmit="return submitChat(event)"><textarea id="chatInput" rows="2" maxlength="80" placeholder="Nhập câu hỏi..." aria-label="Tin nhắn"></textarea><button id="chatSend" class="btn primary" type="submit" disabled>➤ Gửi</button></form>
+ <div class="chat-hint"><span>Enter gửi · Shift+Enter xuống dòng</span><span id="chatCounter">0/80</span></div>
  </div></div></section>
  <section class="page" id="page-music"><div class="section-box">
   <h2 class="page-heading">Bật nhạc lên nào 🎶</h2><p class="description">Chọn bài hát yêu thích và tận hưởng âm nhạc cùng Tiểu Trí.</p>
@@ -136,20 +141,23 @@ const token="{{LOCAL_TOKEN}}",$=id=>document.getElementById(id);
 const mascotMap={idle:"idle.gif",listening:"thinking.gif",speaking:"speaking.gif",thinking:"thinking.gif",happy:"speaking.gif",laughing:"speaking.gif",funny:"speaking.gif",loving:"loving.gif",sad:"sad.gif",crying:"sad.gif",angry:"angry.gif",confused:"thinking.gif",surprised:"speaking.gif",shocked:"angry.gif",embarrassed:"thinking.gif",relaxed:"idle.gif",sleepy:"idle.gif",winking:"idle.gif",confident:"speaking.gif",silly:"speaking.gif"};
 const moodLabels={idle:["Chào bạn!","Hôm nay bạn muốn trò chuyện gì nào?"],listening:["Tôi đang lắng nghe","Cứ kể cho tôi nghe nhé!"],speaking:["Để tôi kể bạn nghe","Tiểu Trí đang trả lời nè!"],thinking:["Chờ tôi một chút nhé","Tôi đang suy nghĩ..."],happy:["Vui quá đi!","Thật tuyệt khi được trò chuyện cùng bạn."],loving:["Thương bạn nhiều!","Một cái ôm thật to từ Tiểu Trí."],sad:["Hơi buồn một chút","Tôi vẫn đang lắng nghe bạn."],crying:["Hu hu...","Chúng mình sẽ ổn thôi."],angry:["Hơi bực một chút","Để tôi bình tĩnh lại nhé."]};
 const titles={home:["Xin chào! 👋","Tiểu Trí luôn sẵn sàng trò chuyện với bạn."],chat:["Chuyện trò một chút 💬","Những cuộc hội thoại dễ thương của chúng ta."],music:["Góc âm nhạc 🎶","Mở bài hát bạn yêu thích nào."],settings:["Cài đặt ✨","Điều chỉnh Tiểu Trí theo sở thích của bạn."]};
-let dismissedUpdate="",updateInProgress=false;let currentPage="home",activeFile="",previewUntil=0,previewKind="idle",eventSignature="",toastTimer=null,lastState="idle";
+let dismissedUpdate="",updateInProgress=false;let currentPage="home",activeFile="",previewUntil=0,previewKind="idle",eventSignature="",toastTimer=null,lastState="idle",chatBusy=false,chatReady=false;
 function showPage(page){if(!titles[page])return;currentPage=page;document.querySelectorAll("[data-page]").forEach(el=>el.classList.toggle("active",el.dataset.page===page));document.querySelectorAll(".page").forEach(el=>el.classList.toggle("active",el.id==="page-"+page));$("pageTitle").textContent=titles[page][0];$("pageSubtitle").textContent=titles[page][1]}
 document.querySelectorAll("[data-page]").forEach(btn=>btn.addEventListener("click",()=>showPage(btn.dataset.page)));
 function openExternal(link){window.open(link,"_blank","noopener,noreferrer")}
 function notify(message){let box=$("toast");box.textContent=message;box.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>box.classList.remove("show"),4200)}
 async function send(action,value){try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action,value})});const data=await r.json();if(!r.ok){notify(data.error||"Chưa thể thực hiện, thử lại nhé.");return}if(action==="music_pause"||action==="music_resume"||action==="music_stop")notify(({music_pause:"Đã tạm dừng",music_resume:"Đang tiếp tục phát nhạc",music_stop:"Đã dừng nhạc"})[action])}catch(e){notify("Không kết nối được với ứng dụng.")}}
+function updateChatControls(){const count=[...$("chatInput").value].length;$("chatCounter").textContent=count+"/80";$("chatSend").disabled=!chatReady||chatBusy||!$("chatInput").value.trim()||count>80}
+async function submitChat(e){if(e)e.preventDefault();const input=$("chatInput"),text=input.value.trim();if(!chatReady||chatBusy||!text)return false;if([...text].length>80){notify("Tối đa 80 ký tự");return false}
+chatBusy=true;updateChatControls();try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action:"chat_send",text})});const data=await r.json();if(!r.ok){notify(data.error||"Không gửi được");return false}input.value="";notify("Đã gửi tin nhắn.")}catch(e){notify("Mất kết nối ứng dụng")}finally{chatBusy=false;updateChatControls()}return false}
 async function playMusic(){const song=$("song").value.trim(),artist=$("artist").value.trim();if(!song){notify("Bạn hãy nhập tên bài hát nhé!");$("song").focus();return}let b=$("playButton");b.disabled=true;b.textContent="Đang tìm bài hát...";
 try{const r=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json","X-Xiaozhi-Token":token},body:JSON.stringify({action:"music_play",song,artist})});const data=await r.json();notify(r.ok?"Đang chuẩn bị bài hát cho bạn 🎵":(data.error||"Không tìm thấy bài hát."))}catch(e){notify("Chưa thể phát bài hát lúc này.")}finally{b.disabled=false;b.textContent="▶ Phát nhạc"}}
 function previewMascot(kind){previewKind=kind;previewUntil=Date.now()+4500;showPage("home");showMascot(kind)}
 function showMascot(kind){const file=mascotMap[kind]||mascotMap.idle;if(activeFile!==file){activeFile=file;$("mascotImage").src="/assets/emotions/"+file}const label=moodLabels[kind]||moodLabels.idle;$("mascotState").textContent=label[0];$("mascotHint").textContent=label[1]}
 function createText(tag,value,cls){const el=document.createElement(tag);el.textContent=value;if(cls)el.className=cls;return el}
-function updateHistory(events){const valid=events.filter(e=>e.kind==="stt"||e.kind==="tts"||e.kind==="llm");const recent=valid.slice(-4);const box=$("recent");box.replaceChildren();if(!recent.length)box.append(createText("p","Những câu chuyện của chúng ta sẽ xuất hiện ở đây.","note"));else for(const e of recent){let item=createText("div",e.text,"recent-item"+(e.kind==="stt"?" me":""));item.prepend(createText("small",e.kind==="stt"?"Bạn":"Tiểu Trí"));box.append(item)}
+function updateHistory(events){const valid=events.filter(e=>e.kind==="stt"||e.kind==="chat"||e.kind==="tts"||e.kind==="llm");const recent=valid.slice(-4);const box=$("recent");box.replaceChildren();if(!recent.length)box.append(createText("p","Những câu chuyện của chúng ta sẽ xuất hiện ở đây.","note"));else for(const e of recent){let item=createText("div",e.text,"recent-item"+((e.kind==="stt"||e.kind==="chat")?" me":""));item.prepend(createText("small",(e.kind==="stt"||e.kind==="chat")?"Bạn":"Tiểu Trí"));box.append(item)}
 const target=$("history");target.replaceChildren();if(!valid.length){let e=createText("div","","empty");e.append(createText("span","💜","empty-emoji"),createText("strong","Chưa có cuộc trò chuyện nào"),createText("span","Nhấn trò chuyện ở trang chủ để bắt đầu nhé!"));target.append(e);return}
-for(const e of valid){let row=createText("div","","chat-message"+(e.kind==="stt"?" me":""));if(e.kind!=="stt")row.append(createText("span","🌟","chat-icon"));const bubble=createText("div",e.text,"chat-content");bubble.append(createText("small",e.time));row.append(bubble);target.append(row)}target.scrollTop=target.scrollHeight}
+for(const e of valid){let row=createText("div","","chat-message"+((e.kind==="stt"||e.kind==="chat")?" me":""));if(e.kind!=="stt")row.append(createText("span","🌟","chat-icon"));const bubble=createText("div",e.text,"chat-content");bubble.append(createText("small",e.time));row.append(bubble);target.append(row)}target.scrollTop=target.scrollHeight}
 function musicClock(s){const n=Math.max(0,Math.floor(Number(s)||0));return Math.floor(n/60)+":"+String(n%60).padStart(2,"0")}
 let lyricKey="",lyricNodes=[];
 function updateMusicLyrics(song) {
@@ -177,7 +185,7 @@ function updateUI(s){
  const hasCode=typeof s.activation==="string"&&s.activation.trim().length>0;
  $("activationOverlay").classList.toggle("hidden",!hasCode);
  if(hasCode)$("activationCode").textContent=s.activation;
- const state=s.state||"idle",recording=state==="listening",speaking=state==="speaking";
+ const state=s.state||"idle",recording=state==="listening",speaking=state==="speaking";chatReady=isReady&&!speaking;updateChatControls();
  $("start").disabled=!isReady||recording||speaking;$("stop").disabled=!recording;
  $("abort").style.display=speaking?"inline-flex":"none";
  const emotion=(s.emotion||"neutral").toLowerCase();
@@ -196,14 +204,14 @@ function updateUI(s){
  $("musicProgress").value=duration?Math.min(100,Math.max(0,elapsed/duration*100)):0;
  updateMusicLyrics(song);
  const pct=Math.round((s.volume??.7)*100);$("vol").textContent=pct+"%";if(document.activeElement!==$("volume"))$("volume").value=pct;
- const signature=JSON.stringify((s.events||[]).filter(e=>["stt","tts","llm"].includes(e.kind)));if(eventSignature!==signature){eventSignature=signature;updateHistory(s.events||[])}
+ const signature=JSON.stringify((s.events||[]).filter(e=>["stt","chat","tts","llm"].includes(e.kind)));if(eventSignature!==signature){eventSignature=signature;updateHistory(s.events||[])}
  if(s.error&&s.phase==="error"&&lastState!=="error")notify("Tiểu Trí chưa kết nối được. Bạn thử mở lại sau nhé.");
  lastState=s.phase;
 }
-async function refresh(){try{const r=await fetch("/api/status",{cache:"no-store"});if(!r.ok)throw Error("Offline");updateUI(await r.json())}catch(e){$("statusText").textContent="Đang kết nối";$("status").classList.add("offline");$("start").disabled=true;$("stop").disabled=true}}
+async function refresh(){try{const r=await fetch("/api/status",{cache:"no-store"});if(!r.ok)throw Error("Offline");updateUI(await r.json())}catch(e){$("statusText").textContent="Đang kết nối";$("status").classList.add("offline");$("start").disabled=true;$("stop").disabled=true;chatReady=false;updateChatControls()}}
 function dismissUpdate(){dismissedUpdate=$("updateMessage").textContent.match(/bản ([0-9.]+)/)?.[1]||"dismissed";$("updateOverlay").classList.add("hidden")}
 async function startUpdate(){if(updateInProgress)return;updateInProgress=true;$("updateNow").disabled=true;$("updateProgress").textContent="Đang tải bản cập nhật...";await send("install_update")}
-function setup(){const bars=$("micVisual");for(let i=0;i<25;i++){const b=document.createElement("span");b.style.setProperty("--i",String(i));b.style.setProperty("--h",String(10+Math.round(33*Math.abs(Math.sin(i*.8)*Math.cos(i*.36)))));bars.append(b)}$("song").addEventListener("keydown",e=>{if(e.key==="Enter")playMusic()});$("artist").addEventListener("keydown",e=>{if(e.key==="Enter")playMusic()});refresh();setInterval(refresh,1000)}
+function setup(){$("chatInput").addEventListener("input",updateChatControls);$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();submitChat(e)}});const bars=$("micVisual");for(let i=0;i<25;i++){const b=document.createElement("span");b.style.setProperty("--i",String(i));b.style.setProperty("--h",String(10+Math.round(33*Math.abs(Math.sin(i*.8)*Math.cos(i*.36)))));bars.append(b)}$("song").addEventListener("keydown",e=>{if(e.key==="Enter")playMusic()});$("artist").addEventListener("keydown",e=>{if(e.key==="Enter")playMusic()});refresh();setInterval(refresh,1000)}
 async function exitApp(){if(window.confirm("Bạn muốn tạm biệt Tiểu Trí và thoát ứng dụng?"))await send("quit")}
 setup();
 </script></body></html>

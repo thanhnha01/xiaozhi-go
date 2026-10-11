@@ -259,6 +259,18 @@ func (p *ProtocolClient) SendWakeWordDetected(wakeWord string) error {
 	})
 }
 
+// SendTextQuery sends a short typed user message on the existing device
+// WebSocket, using the listen/detect form used by text-capable XiaoZhi servers.
+// This is NOT a guaranteed part of every server's public protocol.
+func (p *ProtocolClient) SendTextQuery(text string) error {
+    return p.writeJSON(Message{
+        SessionID: p.sessionID,
+        Type:      "listen",
+        State:     "detect",
+        Text:      text,
+    })
+}
+
 // SendAbortSpeaking 对应 SendAbortSpeaking()：中止当前对话。
 func (p *ProtocolClient) SendAbortSpeaking() error {
 	return p.writeJSON(Message{

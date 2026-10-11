@@ -35,6 +35,7 @@ type App struct {
 	proto *ProtocolClient
 	audio *AudioManager
  music *MusicPlayer
+ inbox *ChatInboxClient
 	http  *http.Client
 
 	// 监听状态控制
@@ -100,6 +101,7 @@ func main() {
 		quitChan: make(chan struct{}),
  cancel:lifeCancel,
 	}
+	if base:=os.Getenv("XIAOZHI_CHAT_INBOX_URL");base!="" { app.inbox=&ChatInboxClient{BaseURL:base,Token:os.Getenv("XIAOZHI_CHAT_INBOX_TOKEN")} }
 	app.sm.TransitionTo(StateStarting)
 	if !consoleOnly {
 		dashboard, err := newDashboard(app)
@@ -346,6 +348,8 @@ func validateChatText(raw string)(string,error){
  return text,nil
 }
 func(app *App)sendChatText(raw string)error{
+ if app.inbox!=nil {return app.sendInboxText(raw)}
+
  text,err:=validateChatText(raw);if err!=nil{return err}
  app.stateMu.Lock();defer app.stateMu.Unlock()
  if app.proto==nil||!app.proto.IsConnected(){return fmt.Errorf("chưa kết nối XiaoZhi")}
@@ -353,6 +357,50 @@ func(app *App)sendChatText(raw string)error{
  if err=app.proto.SendTextQuery(text);err!=nil{return err}
  if app.dashboard!=nil{app.dashboard.markChatSent(text)}
  return nil
+}
+func(app *App)sendInboxText(raw string)error{
+ text:=strings.TrimSpace(raw)
+ if text==""||utf8.RuneCountInString(text)>inboxMaxRunes||strings.ContainsRune(text,0){return fmt.Errorf("Nội dung Inbox cần từ 1 đến 2000 ký tự hợp lệ")}
+ if err:=app.inbox.Validate();err!=nil{return err}
+ app.stateMu.Lock()
+ if app.proto==nil||!app.proto.IsConnected(){app.stateMu.Unlock();return fmt.Errorf("chưa kết nối XiaoZhi")}
+ switch app.sm.Current(){case StateIdle:case StateListening:app.stopListeningLocked();default:app.stateMu.Unlock();return fmt.Errorf("XiaoZhi đang xử lý, vui lòng chờ")}
+ app.stateMu.Unlock()
+ ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second)
+ defer cancel()
+ code,err:=app.inbox.Submit(ctx,text)
+ if err!=nil{return err}
+ app.stateMu.Lock()
+ defer app.stateMu.Unlock()
+ if app.proto==nil||!app.proto.IsConnected()||app.sm.Current()!=StateIdle{return fmt.Errorf("Đã lưu câu hỏi %s nhưng phiên XiaoZhi không sẵn sàng; thử mã trên sau",code)}
+ // Short wake-word trigger is experimental. The server may still reject it
+ // or the assistant may not invoke cloud.chat_get_pending.
+ trigger:="đọc mã "+code
+ if err:=app.proto.SendTextQuery(trigger);err!=nil{return fmt.Errorf("Đã lưu câu hỏi %s nhưng không kích hoạt được: %w",code,err)}
+ if app.dashboard!=nil{
+  app.dashboard.markChatSent(text)
+  app.dashboard.event("chat_notice","Inbox đã lưu mã "+code+". Đang thử kích hoạt XiaoZhi; chỉ khi MCP trả fetched mới chứng minh AI lấy được nội dung.")
+  go app.checkInboxFetch(code)
+ }
+ return nil
+}
+func(app *App)checkInboxFetch(code string){
+ ctx,cancel:=context.WithTimeout(context.Background(),35*time.Second);defer cancel()
+ tick:=time.NewTicker(3*time.Second);defer tick.Stop()
+ for {
+  select {
+  case <-app.quitChan:return
+  case <-ctx.Done():
+   if app.dashboard!=nil {app.dashboard.event("chat_notice","MCP Inbox chưa xác nhận đã được đọc: "+code+". Hãy kiểm tra cấu hình Worker và tool MCP.")};return
+  case <-tick.C:
+   value,err:=app.inbox.Check(ctx,code)
+   if err!=nil{continue}
+   if value=="fetched"||value=="done"{
+    if app.dashboard!=nil{app.dashboard.event("chat_notice","MCP Inbox xác nhận đã lấy nội dung mã "+code+".")}
+    return
+   }
+  }
+ }
 }
 // startListening 开始监听（对应原版 SendStartListening，manual 模式）。
 func (app *App) startListening() {

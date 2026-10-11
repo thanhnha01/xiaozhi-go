@@ -147,9 +147,10 @@ func (d *Dashboard) handler() http.Handler{
  mux.HandleFunc("/api/action",func(w http.ResponseWriter,r *http.Request){
   if r.Method!=http.MethodPost{http.Error(w,"Sai phương thức",405);return}
   if r.Header.Get("X-Xiaozhi-Token")!=d.nonce||(r.Header.Get("Origin")!=""&&r.Header.Get("Origin")!=d.url){http.Error(w,"Không được phép",403);return}
-  var req struct {Action string `json:"action"`;Value float32 `json:"value"`;Song string `json:"song"`;Artist string `json:"artist"`}
+  var req struct {Action string `json:"action"`;Value float32 `json:"value"`;Song string `json:"song"`;Artist string `json:"artist"`;Text string `json:"text"`}
   if err:=json.NewDecoder(io.LimitReader(r.Body,2048)).Decode(&req);err!=nil{http.Error(w,"Dữ liệu không hợp lệ",400);return}
-  err:=d.performAction(req.Action,req.Value)
+  err:=error(nil)
+  if req.Action=="chat_send"{err=d.app.sendChatText(req.Text)}else{err=d.performAction(req.Action,req.Value)}
   if req.Action=="install_update"{err=d.startUpdate()}
   if req.Action=="music_play" && d.app.music!=nil {err=d.app.music.Play(req.Song,req.Artist)}
   w.Header().Set("Content-Type","application/json; charset=utf-8")

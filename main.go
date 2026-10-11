@@ -20,6 +20,8 @@ import (
 	"os/signal"
 	"sync"
 	"sync/atomic"
+ "strings"
+ "unicode/utf8"
 	"time"
 )
 
@@ -330,6 +332,22 @@ func (app *App) handleMessage(msg *Message) {
 	}
 }
 
+func validateChatText(raw string)(string,error){
+ text:=strings.TrimSpace(raw)
+ if text=="" {return "",fmt.Errorf("vui lòng nhập tin nhắn")}
+ if utf8.RuneCountInString(text)>80 {return "",fmt.Errorf("tin nhắn tối đa 80 ký tự")}
+ if strings.ContainsRune(text,0) {return "",fmt.Errorf("ký tự không hợp lệ")}
+ return text,nil
+}
+func(app *App)sendChatText(raw string)error{
+ text,err:=validateChatText(raw);if err!=nil{return err}
+ app.stateMu.Lock();defer app.stateMu.Unlock()
+ if app.proto==nil||!app.proto.IsConnected(){return fmt.Errorf("chưa kết nối XiaoZhi")}
+ switch app.sm.Current(){case StateIdle:case StateListening:app.stopListeningLocked();default:return fmt.Errorf("Tiểu Trí đang trả lời, vui lòng chờ")}
+ if err=app.proto.SendTextQuery(text);err!=nil{return err}
+ if app.dashboard!=nil{app.dashboard.event("chat",text)}
+ return nil
+}
 // startListening 开始监听（对应原版 SendStartListening，manual 模式）。
 func (app *App) startListening() {
 	app.stateMu.Lock()

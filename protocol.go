@@ -51,6 +51,9 @@ type Message struct {
 	Payload     json.RawMessage  `json:"payload,omitempty"`
 	Emotion     string           `json:"emotion,omitempty"`
 	Status      string           `json:"status,omitempty"`
+	AlertMessage string          `json:"message,omitempty"`
+	Detail      string           `json:"detail,omitempty"`
+	Code        string           `json:"code,omitempty"`
 	Command     string           `json:"command,omitempty"`
 }
 

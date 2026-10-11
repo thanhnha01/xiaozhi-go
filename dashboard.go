@@ -145,7 +145,7 @@ func (d *Dashboard) handler() http.Handler{
   w.Header().Set("Content-Type","application/json; charset=utf-8")
   _=json.NewEncoder(w).Encode(map[string]any{
    "chat_status":chatStatus,"phase":phase,"state":state,"emotion":emotion,"recording":state=="listening","activation":activation,
-   "error":failure,"update":update,"update_busy":busy,"app_version":appVersion,"mac":d.app.cfg.MacAddress,"volume":volume,"events":events,"logs":logs,
+   "error":failure,"update":update,"update_busy":busy,"inbox_enabled":d.app.inbox!=nil,"app_version":appVersion,"mac":d.app.cfg.MacAddress,"volume":volume,"events":events,"logs":logs,
    "mic_level":micLevel,"music":func()MusicStatus{if d.app.music!=nil{return d.app.music.Status()};return MusicStatus{State:"stopped"}}(),"mic_frames_sent":d.app.micFramesSent.Load(),
    "mic_frames_dropped":d.app.micFramesDropped.Load(),
   })
@@ -154,7 +154,7 @@ func (d *Dashboard) handler() http.Handler{
   if r.Method!=http.MethodPost{http.Error(w,"Sai phương thức",405);return}
   if r.Header.Get("X-Xiaozhi-Token")!=d.nonce||(r.Header.Get("Origin")!=""&&r.Header.Get("Origin")!=d.url){http.Error(w,"Không được phép",403);return}
   var req struct {Action string `json:"action"`;Value float32 `json:"value"`;Song string `json:"song"`;Artist string `json:"artist"`;Text string `json:"text"`}
-  if err:=json.NewDecoder(io.LimitReader(r.Body,2048)).Decode(&req);err!=nil{http.Error(w,"Dữ liệu không hợp lệ",400);return}
+  if err:=json.NewDecoder(io.LimitReader(r.Body,16384)).Decode(&req);err!=nil{http.Error(w,"Dữ liệu không hợp lệ",400);return}
   err:=error(nil)
   if req.Action=="chat_send"{err=d.app.sendChatText(req.Text)}else{err=d.performAction(req.Action,req.Value)}
   if req.Action=="install_update"{err=d.startUpdate()}

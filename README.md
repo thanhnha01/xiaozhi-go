@@ -140,3 +140,8 @@ MIT
 ### Build Windows và kiểm thử
 
 Workflow `.github/workflows/build-windows.yml` chạy Go tests, tạo icon và tài nguyên Windows, build EXE và DLL, biên dịch Inno Setup, tạo checksum SHA-256, đính kèm installer và ZIP vào artifact. Release v1.3.0 được tạo sau khi kiểm thử trên CI thành công.
+
+
+## XiaoZhi PC v1.3.5 — Text chat
+
+Gõ trực tiếp tại tab **Trò chuyện**, Enter gửi, Shift+Enter xuống dòng. Nội dung tối đa 80 ký tự được gửi bằng `listen/detect` trên WebSocket XiaoZhi đang kết nối. Tiểu Trí trả lời bằng giọng TTS hiện tại nếu server hỗ trợ. Lịch sử hội thoại vẫn ghép câu TTS thành một tin nhắn. Các tính năng giọng nói, nghe nhạc và tự cập nhật được giữ nguyên.

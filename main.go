@@ -320,8 +320,12 @@ func (app *App) handleMessage(msg *Message) {
 	case "system":
 		log.Printf("系统命令: %s（PC 版忽略重启，保持会话）", msg.Command)
 	case "alert":
-		log.Printf("告警: [%s] %s", msg.Status, msg.Text)
-        if app.dashboard != nil {app.dashboard.onChatServerEvent("alert") ;app.dashboard.event("chat_notice","Máy chủ gửi cảnh báo: "+msg.Text)}
+        description:=formatServerAlert(msg)
+        log.Printf("Cảnh báo XiaoZhi: %s",description)
+        if app.dashboard != nil {
+            app.dashboard.onChatServerEvent("alert")
+            app.dashboard.event("chat_notice","Máy chủ gửi cảnh báo: "+description)
+        }
 	case "goodbye":
 		log.Println("服务器结束会话")
         if app.dashboard != nil {app.dashboard.onChatServerEvent("goodbye")}

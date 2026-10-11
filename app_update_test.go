@@ -9,8 +9,8 @@ import (
 
 func TestReleaseVersionComparison(t *testing.T){
  cases:=[]struct{version string;want bool}{
-  {"v1.3.7",true},{"v1.4.0",true},{"v2.0.0",true},
-  {"v1.3.6",false},{"v1.3.5",false},{"v1.3.4",false},{"v1.2.99",false},{"bad",false},{"v2.1",false},
+  {"v1.3.8",true},{"v1.4.0",true},{"v2.0.0",true},
+  {"v1.3.7",false},{"v1.3.6",false},{"v1.3.5",false},{"v1.3.4",false},{"v1.2.99",false},{"bad",false},{"v2.1",false},
  }
  for _,c:=range cases{if got:=newerVersion(c.version);got!=c.want{t.Errorf("%s got %t want %t",c.version,got,c.want)}}
 }

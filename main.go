@@ -297,11 +297,11 @@ func (app *App) handleMessage(msg *Message) {
 			app.sm.TransitionTo(StateSpeaking)
 			log.Println("开始播放 TTS")
 			app.audio.ClearOutput()
-            if app.dashboard != nil {app.dashboard.beginTTSReply()}
+            if app.dashboard != nil {app.dashboard.onChatServerEvent("tts_start");app.dashboard.beginTTSReply()}
 		case "stop":
 			app.sm.TransitionTo(StateIdle)
 			log.Println("TTS 播放结束")
-            if app.dashboard != nil {app.dashboard.endTTSReply()}
+            if app.dashboard != nil {app.dashboard.onChatServerEvent("tts_stop");app.dashboard.endTTSReply()}
 			// GUI uses explicit push-to-talk. Do not reopen microphone after
 			// TTS stops unless the user presses "Bắt đầu nói" again.
 			if app.dashboard == nil { app.startListening() }
@@ -311,7 +311,7 @@ func (app *App) handleMessage(msg *Message) {
 		}
 	case "stt":
 		log.Printf("识别结果: %s", msg.Text)
-		if app.dashboard != nil {app.dashboard.event("stt",msg.Text)}
+		if app.dashboard != nil {app.dashboard.onChatServerEvent("stt");if !app.dashboard.consumeChatEcho(msg.Text){app.dashboard.event("stt",msg.Text)}}
 	case "llm":
 		log.Printf("LLM: 情感=%s 文本=%s", msg.Emotion, msg.Text)
 		if app.dashboard != nil {app.dashboard.setEmotion(msg.Emotion)}
@@ -321,8 +321,10 @@ func (app *App) handleMessage(msg *Message) {
 		log.Printf("系统命令: %s（PC 版忽略重启，保持会话）", msg.Command)
 	case "alert":
 		log.Printf("告警: [%s] %s", msg.Status, msg.Text)
+        if app.dashboard != nil {app.dashboard.onChatServerEvent("alert") ;app.dashboard.event("chat_notice","Máy chủ gửi cảnh báo: "+msg.Text)}
 	case "goodbye":
 		log.Println("服务器结束会话")
+        if app.dashboard != nil {app.dashboard.onChatServerEvent("goodbye")}
 		app.stateMu.Lock()
 		app.stopListeningLocked()
 		app.stateMu.Unlock()
@@ -345,7 +347,7 @@ func(app *App)sendChatText(raw string)error{
  if app.proto==nil||!app.proto.IsConnected(){return fmt.Errorf("chưa kết nối XiaoZhi")}
  switch app.sm.Current(){case StateIdle:case StateListening:app.stopListeningLocked();default:return fmt.Errorf("Tiểu Trí đang trả lời, vui lòng chờ")}
  if err=app.proto.SendTextQuery(text);err!=nil{return err}
- if app.dashboard!=nil{app.dashboard.event("chat",text)}
+ if app.dashboard!=nil{app.dashboard.markChatSent(text)}
  return nil
 }
 // startListening 开始监听（对应原版 SendStartListening，manual 模式）。

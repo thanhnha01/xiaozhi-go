@@ -38,6 +38,11 @@ type Dashboard struct {
  events []dashboardEvent
  ttsInProgress bool
  ttsEventIndex int
+ chatStatus string
+ chatMonitorID uint64
+ chatLastTyped string
+ chatSentAt time.Time
+ chatEchoSeen bool
  logs []string
  update appUpdate
  updateBusy bool
@@ -126,6 +131,7 @@ func (d *Dashboard) handler() http.Handler{
   d.mu.RLock()
   phase,failure,activation,emotion:=d.phase,d.errorMessage,d.activation,d.emotion
   events:=append([]dashboardEvent{},d.events...)
+ chatStatus:=d.chatStatus
   logs:=append([]string{},d.logs...)
   update,busy:=d.update,d.updateBusy
   d.mu.RUnlock()
@@ -138,7 +144,7 @@ func (d *Dashboard) handler() http.Handler{
   }
   w.Header().Set("Content-Type","application/json; charset=utf-8")
   _=json.NewEncoder(w).Encode(map[string]any{
-   "phase":phase,"state":state,"emotion":emotion,"recording":state=="listening","activation":activation,
+   "chat_status":chatStatus,"phase":phase,"state":state,"emotion":emotion,"recording":state=="listening","activation":activation,
    "error":failure,"update":update,"update_busy":busy,"app_version":appVersion,"mac":d.app.cfg.MacAddress,"volume":volume,"events":events,"logs":logs,
    "mic_level":micLevel,"music":func()MusicStatus{if d.app.music!=nil{return d.app.music.Status()};return MusicStatus{State:"stopped"}}(),"mic_frames_sent":d.app.micFramesSent.Load(),
    "mic_frames_dropped":d.app.micFramesDropped.Load(),
